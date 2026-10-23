@@ -196,6 +196,31 @@ export default function NewGoalScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.trackerRow}
             >
+              <Pressable
+                onPress={() => chooseTracker(NEW_TRACKER_ID)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: creatingTracker }}
+                style={({ pressed }) => [
+                  styles.trackerOption,
+                  {
+                    backgroundColor: creatingTracker
+                      ? withAlpha(theme.primary, 0.14)
+                      : theme.surface,
+                    borderColor: creatingTracker ? theme.primary : theme.border,
+                  },
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Ionicons
+                  name="add"
+                  size={22}
+                  color={creatingTracker ? theme.primary : theme.textMuted}
+                />
+                <AppText variant="caption" numberOfLines={1}>
+                  {strings.goalForm.newTracker}
+                </AppText>
+              </Pressable>
+
               {(data?.trackers ?? []).map((tracker) => {
                 const trackerColor = tracker.color ?? theme.primary;
                 const selected = tracker.id === currentId;
@@ -227,31 +252,6 @@ export default function NewGoalScreen() {
                   </Pressable>
                 );
               })}
-
-              <Pressable
-                onPress={() => chooseTracker(NEW_TRACKER_ID)}
-                accessibilityRole="button"
-                accessibilityState={{ selected: creatingTracker }}
-                style={({ pressed }) => [
-                  styles.trackerOption,
-                  {
-                    backgroundColor: creatingTracker
-                      ? withAlpha(theme.primary, 0.14)
-                      : theme.surface,
-                    borderColor: creatingTracker ? theme.primary : theme.border,
-                  },
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Ionicons
-                  name="add"
-                  size={22}
-                  color={creatingTracker ? theme.primary : theme.textMuted}
-                />
-                <AppText variant="caption" numberOfLines={1}>
-                  {strings.goalForm.newTracker}
-                </AppText>
-              </Pressable>
             </ScrollView>
           </View>
 
