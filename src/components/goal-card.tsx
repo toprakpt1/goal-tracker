@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import Plus from 'lucide-react-native/icons/plus';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
 import { ProgressBar } from '@/components/progress-bar';
+import { TrackerIcon } from '@/components/tracker-icon';
 import type { Progress } from '@/domain/progress';
 import type { GoalWithTracker } from '@/domain/types';
 import { strings } from '@/i18n/strings';
@@ -13,23 +15,34 @@ import { radius, spacing, useTheme } from '@/theme';
 interface GoalCardProps {
   goal: GoalWithTracker;
   progress: Progress;
+  onPress?: () => void;
+  onQuickAdd?: () => void;
 }
 
-export function GoalCard({ goal, progress }: GoalCardProps) {
+export function GoalCard({ goal, progress, onPress, onQuickAdd }: GoalCardProps) {
   const theme = useTheme();
   const color = goal.tracker.color ?? theme.primary;
 
   return (
-    <View
-      style={[
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={`${goal.tracker.name}, ${formatProgressLine(
+        progress.total,
+        progress.target,
+        goal.tracker.unit,
+      )}`}
+      style={({ pressed }) => [
         styles.card,
         { backgroundColor: theme.surface, borderColor: theme.border },
         progress.isComplete && styles.completed,
+        pressed && styles.pressed,
       ]}
     >
       <View style={styles.header}>
         <View style={[styles.iconChip, { backgroundColor: withAlpha(color, 0.14) }]}>
-          <Text style={styles.icon}>{goal.tracker.icon ?? '🎯'}</Text>
+          <TrackerIcon icon={goal.tracker.icon} size={21} color={color} />
         </View>
 
         <View style={styles.titleBlock}>
@@ -61,13 +74,38 @@ export function GoalCard({ goal, progress }: GoalCardProps) {
         <AppText variant="number">
           {formatProgressLine(progress.total, progress.target, goal.tracker.unit)}
         </AppText>
-        <AppText variant="caption" color={progress.isComplete ? theme.success : theme.textMuted}>
-          {progress.isComplete
-            ? `${formatAmount(progress.percent)}%`
-            : strings.today.remaining(formatAmount(progress.remaining), goal.tracker.unit)}
-        </AppText>
+
+        <View style={styles.footerRight}>
+          <AppText variant="caption" color={progress.isComplete ? theme.success : theme.textMuted}>
+            {progress.isComplete
+              ? `${formatAmount(progress.percent)}%`
+              : strings.today.remaining(formatAmount(progress.remaining), goal.tracker.unit)}
+          </AppText>
+
+          {onQuickAdd ? (
+            <Pressable
+              onPress={(event) => {
+                event.stopPropagation();
+                onQuickAdd();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={strings.today.quickAdd(
+                formatAmount(goal.tracker.defaultStep),
+                goal.tracker.unit,
+              )}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.quickAdd,
+                { backgroundColor: withAlpha(color, 0.14) },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Plus size={16} color={color} strokeWidth={2.5} />
+            </Pressable>
+          ) : null}
+        </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -81,6 +119,9 @@ const styles = StyleSheet.create({
   completed: {
     opacity: 0.72,
   },
+  pressed: {
+    opacity: 0.75,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -92,9 +133,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  icon: {
-    fontSize: 21,
   },
   titleBlock: {
     flex: 1,
@@ -115,5 +153,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  footerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  quickAdd: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

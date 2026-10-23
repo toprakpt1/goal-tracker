@@ -4,7 +4,7 @@ export const DATABASE_NAME = 'goaltracker.db';
  * Bump this and add a branch in `migrations.ts` for every schema change.
  * The value is stored in SQLite's `PRAGMA user_version`.
  */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const SCHEMA_V1 = `
 CREATE TABLE trackers (
@@ -51,4 +51,16 @@ CREATE INDEX idx_logs_tracker_time ON logs (tracker_id, logged_at);
 CREATE INDEX idx_goals_tracker ON goals (tracker_id);
 CREATE INDEX idx_goals_active ON goals (archived, period);
 CREATE INDEX idx_trackers_active ON trackers (archived, sort_order);
+`;
+
+/**
+ * v2 replaces emoji icons with Lucide icon names. The renderer also understands
+ * the old emoji values, but migrating keeps the data honest for future screens.
+ */
+export const SCHEMA_V2 = `
+UPDATE trackers SET icon = 'book-open' WHERE icon = '📚';
+UPDATE trackers SET icon = 'book' WHERE icon = '📖';
+UPDATE trackers SET icon = 'droplets' WHERE icon = '💧';
+UPDATE trackers SET icon = 'dumbbell' WHERE icon IN ('🏋️', '🏋');
+UPDATE trackers SET icon = 'target' WHERE icon IS NULL OR trim(icon) = '';
 `;

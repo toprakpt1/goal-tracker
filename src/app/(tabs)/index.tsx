@@ -2,41 +2,52 @@ import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
 import { EmptyState } from '@/components/empty-state';
 import { GoalCard } from '@/components/goal-card';
 import { GoalRow } from '@/components/goal-row';
+import { LogSheet } from '@/components/log-sheet';
 import { Screen } from '@/components/screen';
 import { SectionHeader } from '@/components/section-header';
+import { UndoToast } from '@/components/undo-toast';
 import { loadDashboard } from '@/db/dashboard';
-import { seedDemoData } from '@/db/seed';
+import { createLog, deleteLog } from '@/db/repositories/logs';
 import { getGoalProgress, type Progress } from '@/domain/progress';
 import type { GoalWithTracker, Period } from '@/domain/types';
 import { useDbQuery } from '@/hooks/use-db-query';
 import { useSettings } from '@/hooks/use-settings';
 import { useToday } from '@/hooks/use-today';
 import { strings } from '@/i18n/strings';
-import { formatDateHeading, greetingFor } from '@/lib/format';
+import { formatAmount, formatDateHeading, greetingFor } from '@/lib/format';
 import { notifyDataChanged } from '@/store/db';
 import { radius, spacing, useTheme } from '@/theme';
 
 const SECTION_PERIODS: Period[] = ['weekly', 'monthly', 'yearly'];
+const UNDO_TIMEOUT_MS = 5000;
+
+interface UndoState {
+  logId: string;
+  message: string;
+}
 
 export default function TodayScreen() {
   const theme = useTheme();
   const db = useSQLiteContext();
   const today = useToday();
   const settings = useSettings();
-  const [seeding, setSeeding] = useState(false);
   const [expanded, setExpanded] = useState<Record<Period, boolean>>({
     daily: true,
     weekly: true,
     monthly: false,
     yearly: false,
   });
+  const [logGoal, setLogGoal] = useState<GoalWithTracker | null>(null);
+  const [undo, setUndo] = useState<UndoState | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const quickLock = useRef(false);
 
   const dateKey = format(today, 'yyyy-MM-dd');
   const { data, error, loading } = useDbQuery(
@@ -65,150 +76,229 @@ export default function TodayScreen() {
       settings.weekStartsOn,
     );
 
-  async function handleSeed() {
-    setSeeding(true);
-    try {
-      const result = await seedDemoData(db);
-      if (result.created) {
-        notifyDataChanged();
+  useEffect(() => {
+    return () => {
+      if (undoTimer.current) {
+        clearTimeout(undoTimer.current);
       }
-    } catch (seedError) {
+    };
+  }, []);
+
+  function showUndo(logId: string, message: string) {
+    if (undoTimer.current) {
+      clearTimeout(undoTimer.current);
+    }
+    setUndo({ logId, message });
+    undoTimer.current = setTimeout(() => {
+      setUndo(null);
+      undoTimer.current = null;
+    }, UNDO_TIMEOUT_MS);
+  }
+
+  async function handleQuickAdd(goal: GoalWithTracker) {
+    if (quickLock.current) {
+      return;
+    }
+    quickLock.current = true;
+
+    try {
+      const amount = goal.tracker.defaultStep;
+      const log = await createLog(db, { trackerId: goal.trackerId, amount });
+      notifyDataChanged();
+      showUndo(log.id, strings.today.logged(formatAmount(amount), goal.tracker.unit));
+    } catch (logError) {
       Alert.alert(
-        'Could not load example data',
-        seedError instanceof Error ? seedError.message : String(seedError),
+        strings.common.errorTitle,
+        logError instanceof Error ? logError.message : String(logError),
       );
     } finally {
-      setSeeding(false);
+      quickLock.current = false;
+    }
+  }
+
+  async function handleUndo() {
+    if (!undo) {
+      return;
+    }
+
+    const logId = undo.logId;
+    if (undoTimer.current) {
+      clearTimeout(undoTimer.current);
+      undoTimer.current = null;
+    }
+    setUndo(null);
+
+    try {
+      await deleteLog(db, logId);
+      notifyDataChanged();
+    } catch (undoError) {
+      Alert.alert(
+        strings.common.errorTitle,
+        undoError instanceof Error ? undoError.message : String(undoError),
+      );
     }
   }
 
   const hasGoals = (data?.goals.length ?? 0) > 0;
   const dailyGoals = goalsByPeriod.daily;
+  const logProgress = logGoal ? progressFor(logGoal) : null;
 
   return (
-    <Screen>
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <AppText variant="caption" color={theme.textMuted}>
-            {greetingFor(today)}
-          </AppText>
-          <AppText variant="display">{formatDateHeading(today)}</AppText>
-        </View>
-
-        <Pressable
-          onPress={() => router.push('/settings')}
-          accessibilityRole="button"
-          accessibilityLabel={strings.settings.title}
-          hitSlop={10}
-          style={({ pressed }) => [
-            styles.iconButton,
-            { backgroundColor: theme.surface, borderColor: theme.border },
-            pressed && styles.pressed,
-          ]}
-        >
-          <Ionicons name="settings-outline" size={20} color={theme.text} />
-        </Pressable>
-      </View>
-
-      {loading && !data ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={theme.primary} />
-        </View>
-      ) : error ? (
-        <EmptyState
-          icon="alert-circle-outline"
-          title="Could not load your goals"
-          body={error.message}
-        />
-      ) : !hasGoals ? (
-        <EmptyState
-          icon="sparkles-outline"
-          title={strings.today.emptyTitle}
-          body={strings.today.emptyBody}
-          actionLabel={__DEV__ ? strings.today.emptyAction : undefined}
-          onAction={__DEV__ ? handleSeed : undefined}
-        />
-      ) : (
-        <>
-          <View style={styles.section}>
-            <View style={styles.titleRow}>
-              <AppText variant="heading">{strings.today.title}</AppText>
-              <AppText variant="caption" color={theme.textMuted}>
-                {dailyGoals.length}
-              </AppText>
-            </View>
-
-            {dailyGoals.length === 0 ? (
-              <AppText variant="body" color={theme.textMuted}>
-                {strings.goals.emptyBody}
-              </AppText>
-            ) : (
-              <View style={styles.cards}>
-                {dailyGoals.map((goal) => (
-                  <GoalCard key={goal.id} goal={goal} progress={progressFor(goal)} />
-                ))}
-              </View>
-            )}
+    <View style={[styles.root, { backgroundColor: theme.background }]}>
+      <Screen>
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <AppText variant="caption" color={theme.textMuted}>
+              {greetingFor(today)}
+            </AppText>
+            <AppText variant="display">{formatDateHeading(today)}</AppText>
           </View>
 
-          {SECTION_PERIODS.map((period) => {
-            const goals = goalsByPeriod[period];
-            if (goals.length === 0) {
-              return null;
-            }
+          <Pressable
+            onPress={() => router.push('/settings')}
+            accessibilityRole="button"
+            accessibilityLabel={strings.settings.title}
+            hitSlop={10}
+            style={({ pressed }) => [
+              styles.iconButton,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              pressed && styles.pressed,
+            ]}
+          >
+            <Ionicons name="settings-outline" size={20} color={theme.text} />
+          </Pressable>
+        </View>
 
-            const isExpanded = expanded[period];
-            return (
-              <View key={period} style={styles.section}>
-                <SectionHeader
-                  title={
-                    period === 'weekly'
-                      ? strings.today.thisWeek
-                      : period === 'monthly'
-                        ? strings.today.thisMonth
-                        : strings.today.thisYear
-                  }
-                  count={goals.length}
-                  expanded={isExpanded}
-                  onToggle={() =>
-                    setExpanded((current) => ({ ...current, [period]: !current[period] }))
-                  }
-                />
-
-                {isExpanded ? (
-                  <View
-                    style={[
-                      styles.sectionCard,
-                      { backgroundColor: theme.surface, borderColor: theme.border },
-                    ]}
-                  >
-                    {goals.map((goal, index) => (
-                      <View key={goal.id}>
-                        {index > 0 ? (
-                          <View style={[styles.divider, { backgroundColor: theme.border }]} />
-                        ) : null}
-                        <GoalRow goal={goal} progress={progressFor(goal)} />
-                      </View>
-                    ))}
-                  </View>
-                ) : null}
+        {loading && !data ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={theme.primary} />
+          </View>
+        ) : error ? (
+          <EmptyState
+            icon="alert-circle-outline"
+            title="Could not load your goals"
+            body={error.message}
+          />
+        ) : !hasGoals ? (
+          <EmptyState
+            icon="sparkles-outline"
+            title={strings.today.emptyTitle}
+            body={strings.today.emptyBody}
+            actionLabel={strings.today.emptyAction}
+            onAction={() => router.push('/goal/new')}
+          />
+        ) : (
+          <>
+            <View style={styles.section}>
+              <View style={styles.titleRow}>
+                <AppText variant="heading">{strings.today.title}</AppText>
+                <AppText variant="caption" color={theme.textMuted}>
+                  {dailyGoals.length}
+                </AppText>
               </View>
-            );
-          })}
 
-          {seeding ? (
-            <View style={styles.center}>
-              <ActivityIndicator color={theme.primary} />
+              {dailyGoals.length === 0 ? (
+                <AppText variant="body" color={theme.textMuted}>
+                  {strings.goals.emptyBody}
+                </AppText>
+              ) : (
+                <View style={styles.cards}>
+                  {dailyGoals.map((goal) => (
+                    <GoalCard
+                      key={goal.id}
+                      goal={goal}
+                      progress={progressFor(goal)}
+                      onPress={() => setLogGoal(goal)}
+                      onQuickAdd={() => void handleQuickAdd(goal)}
+                    />
+                  ))}
+                </View>
+              )}
             </View>
-          ) : null}
 
-        </>
-      )}
-    </Screen>
+            {SECTION_PERIODS.map((period) => {
+              const goals = goalsByPeriod[period];
+              if (goals.length === 0) {
+                return null;
+              }
+
+              const isExpanded = expanded[period];
+              return (
+                <View key={period} style={styles.section}>
+                  <SectionHeader
+                    title={
+                      period === 'weekly'
+                        ? strings.today.thisWeek
+                        : period === 'monthly'
+                          ? strings.today.thisMonth
+                          : strings.today.thisYear
+                    }
+                    count={goals.length}
+                    expanded={isExpanded}
+                    onToggle={() =>
+                      setExpanded((current) => ({ ...current, [period]: !current[period] }))
+                    }
+                  />
+
+                  {isExpanded ? (
+                    <View
+                      style={[
+                        styles.sectionCard,
+                        { backgroundColor: theme.surface, borderColor: theme.border },
+                      ]}
+                    >
+                      {goals.map((goal, index) => (
+                        <View key={goal.id}>
+                          {index > 0 ? (
+                            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+                          ) : null}
+                          <GoalRow
+                            goal={goal}
+                            progress={progressFor(goal)}
+                            onPress={() => setLogGoal(goal)}
+                          />
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+          </>
+        )}
+      </Screen>
+
+      {logGoal ? (
+        <LogSheet
+          key={logGoal.id}
+          tracker={logGoal.tracker}
+          subtitle={strings.periods[logGoal.period]}
+          total={logProgress?.total}
+          target={logProgress?.target}
+          onClose={() => setLogGoal(null)}
+          onSaved={(log) => {
+            showUndo(
+              log.id,
+              strings.today.logged(formatAmount(log.amount), logGoal.tracker.unit),
+            );
+          }}
+        />
+      ) : null}
+
+      <UndoToast
+        visible={undo !== null}
+        message={undo?.message ?? ''}
+        onUndo={() => void handleUndo()}
+        style={styles.toast}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -253,5 +343,8 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
+  },
+  toast: {
+    bottom: 84,
   },
 });

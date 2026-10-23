@@ -18,6 +18,8 @@ export function Screen({ children, scroll = true, contentContainerStyle }: Scree
         <ScrollView
           contentContainerStyle={[styles.content, contentContainerStyle]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           {children}
         </ScrollView>

@@ -55,6 +55,10 @@ function AppShell() {
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="goal/new" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="goal/edit" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="goal/[id]" />
+        <Stack.Screen name="tracker/[id]" />
       </Stack>
     </ThemeProvider>
   );

@@ -24,6 +24,14 @@ export interface CreateTrackerInput {
   sortOrder?: number;
 }
 
+export interface UpdateTrackerInput {
+  name?: string;
+  unit?: string;
+  icon?: string | null;
+  color?: string | null;
+  defaultStep?: number;
+}
+
 function mapTracker(row: TrackerRow): Tracker {
   return {
     id: row.id,
@@ -52,6 +60,11 @@ export async function listTrackers(
 export async function countTrackers(db: SQLiteDatabase): Promise<number> {
   const row = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) AS count FROM trackers');
   return row?.count ?? 0;
+}
+
+export async function getTracker(db: SQLiteDatabase, trackerId: string): Promise<Tracker | null> {
+  const row = await db.getFirstAsync<TrackerRow>('SELECT * FROM trackers WHERE id = ?', trackerId);
+  return row ? mapTracker(row) : null;
 }
 
 export async function createTracker(
@@ -88,4 +101,44 @@ export async function createTracker(
   );
 
   return tracker;
+}
+
+export async function updateTracker(
+  db: SQLiteDatabase,
+  trackerId: string,
+  input: UpdateTrackerInput,
+): Promise<void> {
+  const current = await getTracker(db, trackerId);
+  if (!current) {
+    throw new Error('This tracker no longer exists.');
+  }
+
+  const name = (input.name ?? current.name).trim();
+  const unit = (input.unit ?? current.unit).trim();
+  const defaultStep = input.defaultStep ?? current.defaultStep;
+
+  if (!name || !unit) {
+    throw new Error('A tracker needs a name and a unit.');
+  }
+  if (!Number.isFinite(defaultStep) || !(defaultStep > 0)) {
+    throw new Error('The quick-add step must be greater than zero.');
+  }
+
+  await db.runAsync(
+    `UPDATE trackers SET name = ?, unit = ?, icon = ?, color = ?, default_step = ? WHERE id = ?`,
+    name,
+    unit,
+    input.icon === undefined ? current.icon : input.icon,
+    input.color === undefined ? current.color : input.color,
+    defaultStep,
+    trackerId,
+  );
+}
+
+/** Archives the tracker and all of its goals, keeping history for later. */
+export async function archiveTracker(db: SQLiteDatabase, trackerId: string): Promise<void> {
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('UPDATE goals SET archived = 1 WHERE tracker_id = ?', trackerId);
+    await db.runAsync('UPDATE trackers SET archived = 1 WHERE id = ?', trackerId);
+  });
 }

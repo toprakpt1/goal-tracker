@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
 import { ProgressBar } from '@/components/progress-bar';
+import { TrackerIcon } from '@/components/tracker-icon';
 import type { Progress } from '@/domain/progress';
 import type { GoalWithTracker } from '@/domain/types';
 import { withAlpha } from '@/lib/color';
@@ -12,17 +13,26 @@ import { radius, spacing, useTheme } from '@/theme';
 interface GoalRowProps {
   goal: GoalWithTracker;
   progress: Progress;
+  onPress?: () => void;
 }
 
-export function GoalRow({ goal, progress }: GoalRowProps) {
+export function GoalRow({ goal, progress, onPress }: GoalRowProps) {
   const theme = useTheme();
   const color = goal.tracker.color ?? theme.primary;
 
   return (
-    <View style={styles.container}>
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={`${goal.tracker.name}, ${formatAmount(progress.total)} of ${formatAmount(
+        progress.target,
+      )} ${goal.tracker.unit}`}
+      style={({ pressed }) => [styles.container, pressed && styles.pressed]}
+    >
       <View style={styles.row}>
         <View style={[styles.iconChip, { backgroundColor: withAlpha(color, 0.14) }]}>
-          <Text style={styles.icon}>{goal.tracker.icon ?? '🎯'}</Text>
+          <TrackerIcon icon={goal.tracker.icon} size={15} color={color} />
         </View>
 
         <View style={styles.titleBlock}>
@@ -44,7 +54,7 @@ export function GoalRow({ goal, progress }: GoalRowProps) {
       </View>
 
       <ProgressBar ratio={progress.ratio} color={color} height={5} />
-    </View>
+    </Pressable>
   );
 }
 
@@ -52,6 +62,9 @@ const styles = StyleSheet.create({
   container: {
     gap: spacing.sm,
     paddingVertical: spacing.sm,
+  },
+  pressed: {
+    opacity: 0.65,
   },
   row: {
     flexDirection: 'row',
@@ -64,9 +77,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  icon: {
-    fontSize: 15,
   },
   titleBlock: {
     flex: 1,

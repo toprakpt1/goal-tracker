@@ -30,7 +30,7 @@ export async function seedDemoData(db: SQLiteDatabase, now: Date = new Date()): 
     const reading = await createTracker(db, {
       name: 'Reading',
       unit: 'pages',
-      icon: '📚',
+      icon: 'book-open',
       color: trackerPalette[0],
       defaultStep: 10,
       sortOrder: 0,
@@ -39,7 +39,7 @@ export async function seedDemoData(db: SQLiteDatabase, now: Date = new Date()): 
     const books = await createTracker(db, {
       name: 'Books finished',
       unit: 'books',
-      icon: '📖',
+      icon: 'book',
       color: trackerPalette[4],
       defaultStep: 1,
       sortOrder: 1,
@@ -48,7 +48,7 @@ export async function seedDemoData(db: SQLiteDatabase, now: Date = new Date()): 
     const water = await createTracker(db, {
       name: 'Water',
       unit: 'L',
-      icon: '💧',
+      icon: 'droplets',
       color: trackerPalette[1],
       defaultStep: 0.5,
       sortOrder: 2,
@@ -57,7 +57,7 @@ export async function seedDemoData(db: SQLiteDatabase, now: Date = new Date()): 
     const workout = await createTracker(db, {
       name: 'Workout',
       unit: 'times',
-      icon: '🏋️',
+      icon: 'dumbbell',
       color: trackerPalette[3],
       defaultStep: 1,
       sortOrder: 3,

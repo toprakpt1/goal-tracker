@@ -66,6 +66,23 @@ export async function countLogs(db: SQLiteDatabase): Promise<number> {
   return row?.count ?? 0;
 }
 
+/** Newest first. Used by the goal detail history. */
+export async function listLogsForTracker(
+  db: SQLiteDatabase,
+  trackerId: string,
+  limit = 20,
+): Promise<LogEntry[]> {
+  const rows = await db.getAllAsync<LogRow>(
+    `SELECT * FROM logs
+     WHERE tracker_id = ?
+     ORDER BY logged_at DESC
+     LIMIT ?`,
+    trackerId,
+    limit,
+  );
+  return rows.map(mapLog);
+}
+
 export async function createLog(db: SQLiteDatabase, input: CreateLogInput): Promise<LogEntry> {
   if (!(input.amount > 0)) {
     throw new Error('A log amount must be greater than zero.');
