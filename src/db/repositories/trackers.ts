@@ -1,11 +1,12 @@
 import { randomUUID } from 'expo-crypto';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import type { Tracker } from '@/domain/types';
+import type { Tracker, TrackerKind } from '@/domain/types';
 
 interface TrackerRow {
   id: string;
   name: string;
+  kind: TrackerKind;
   unit: string;
   icon: string | null;
   color: string | null;
@@ -17,7 +18,8 @@ interface TrackerRow {
 
 export interface CreateTrackerInput {
   name: string;
-  unit: string;
+  kind?: TrackerKind;
+  unit?: string;
   icon?: string | null;
   color?: string | null;
   defaultStep?: number;
@@ -36,6 +38,7 @@ function mapTracker(row: TrackerRow): Tracker {
   return {
     id: row.id,
     name: row.name,
+    kind: row.kind,
     unit: row.unit,
     icon: row.icon,
     color: row.color,
@@ -71,27 +74,37 @@ export async function createTracker(
   db: SQLiteDatabase,
   input: CreateTrackerInput,
 ): Promise<Tracker> {
+  const kind = input.kind ?? 'numeric';
+  const isCheck = kind === 'check';
   const tracker: Tracker = {
     id: randomUUID(),
     name: input.name.trim(),
-    unit: input.unit.trim(),
+    kind,
+    unit: isCheck ? '' : (input.unit ?? '').trim(),
     icon: input.icon ?? null,
     color: input.color ?? null,
-    defaultStep: input.defaultStep ?? 1,
+    defaultStep: isCheck ? 1 : (input.defaultStep ?? 1),
     archived: false,
     sortOrder: input.sortOrder ?? 0,
     createdAt: Date.now(),
   };
 
-  if (!tracker.name || !tracker.unit) {
-    throw new Error('A tracker needs a name and a unit.');
+  if (!tracker.name) {
+    throw new Error('A tracker needs a name.');
+  }
+  if (!isCheck && !tracker.unit) {
+    throw new Error('A numeric tracker needs a unit.');
+  }
+  if (!isCheck && !(tracker.defaultStep > 0)) {
+    throw new Error('The quick-add step must be greater than zero.');
   }
 
   await db.runAsync(
-    `INSERT INTO trackers (id, name, unit, icon, color, default_step, archived, sort_order, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+    `INSERT INTO trackers (id, name, kind, unit, icon, color, default_step, archived, sort_order, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
     tracker.id,
     tracker.name,
+    tracker.kind,
     tracker.unit,
     tracker.icon,
     tracker.color,
@@ -113,14 +126,18 @@ export async function updateTracker(
     throw new Error('This tracker no longer exists.');
   }
 
+  const isCheck = current.kind === 'check';
   const name = (input.name ?? current.name).trim();
-  const unit = (input.unit ?? current.unit).trim();
-  const defaultStep = input.defaultStep ?? current.defaultStep;
+  const unit = isCheck ? '' : (input.unit ?? current.unit).trim();
+  const defaultStep = isCheck ? 1 : (input.defaultStep ?? current.defaultStep);
 
-  if (!name || !unit) {
-    throw new Error('A tracker needs a name and a unit.');
+  if (!name) {
+    throw new Error('A tracker needs a name.');
   }
-  if (!Number.isFinite(defaultStep) || !(defaultStep > 0)) {
+  if (!isCheck && !unit) {
+    throw new Error('A numeric tracker needs a unit.');
+  }
+  if (!isCheck && (!Number.isFinite(defaultStep) || !(defaultStep > 0))) {
     throw new Error('The quick-add step must be greater than zero.');
   }
 

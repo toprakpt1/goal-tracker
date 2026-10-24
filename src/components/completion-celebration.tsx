@@ -92,11 +92,13 @@ export function CompletionCelebration({ completions, onClose }: CompletionCelebr
                     </AppText>
                     <AppText variant="caption" color={theme.textMuted} numberOfLines={1}>
                       {strings.periods[item.goal.period]} ·{' '}
-                      {strings.celebration.target(
-                        formatAmount(item.progress.total),
-                        formatAmount(item.progress.target),
-                        item.goal.tracker.unit,
-                      )}
+                      {item.goal.tracker.kind === 'check'
+                        ? strings.check.done
+                        : strings.celebration.target(
+                            formatAmount(item.progress.total),
+                            formatAmount(item.progress.target),
+                            item.goal.tracker.unit,
+                          )}
                     </AppText>
                   </View>
                   <Ionicons name="checkmark-circle" size={20} color={theme.success} />

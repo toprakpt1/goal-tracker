@@ -4,9 +4,17 @@ export const PERIODS: readonly Period[] = ['daily', 'weekly', 'monthly', 'yearly
 
 export type WeekStartsOn = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
+/**
+ * A tracker is either measured in numbers (`numeric`) or ticked off once per
+ * period (`check`). Every goal of a tracker shares the same kind because they
+ * share one log stream.
+ */
+export type TrackerKind = 'numeric' | 'check';
+
 export interface Tracker {
   id: string;
   name: string;
+  kind: TrackerKind;
   unit: string;
   icon: string | null;
   color: string | null;

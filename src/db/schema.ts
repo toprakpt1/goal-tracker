@@ -4,7 +4,7 @@ export const DATABASE_NAME = 'goaltracker.db';
  * Bump this and add a branch in `migrations.ts` for every schema change.
  * The value is stored in SQLite's `PRAGMA user_version`.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const SCHEMA_V1 = `
 CREATE TABLE trackers (
@@ -63,4 +63,13 @@ UPDATE trackers SET icon = 'book' WHERE icon = '📖';
 UPDATE trackers SET icon = 'droplets' WHERE icon = '💧';
 UPDATE trackers SET icon = 'dumbbell' WHERE icon IN ('🏋️', '🏋');
 UPDATE trackers SET icon = 'target' WHERE icon IS NULL OR trim(icon) = '';
+`;
+
+/**
+ * v3 adds checklist trackers. Their goals always have a target of one and are
+ * completed by ticking them off; the unit and quick-add step stay unused.
+ */
+export const SCHEMA_V3 = `
+ALTER TABLE trackers ADD COLUMN kind TEXT NOT NULL DEFAULT 'numeric'
+  CHECK (kind IN ('numeric', 'check'));
 `;

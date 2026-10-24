@@ -1,7 +1,9 @@
 import { randomUUID } from 'expo-crypto';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import type { Goal, GoalWithTracker, Period, Tracker } from '@/domain/types';
+import type { Goal, GoalWithTracker, Period, Tracker, TrackerKind } from '@/domain/types';
+
+import { getTracker } from './trackers';
 
 interface GoalRow {
   id: string;
@@ -16,6 +18,7 @@ interface GoalRow {
 
 interface GoalWithTrackerRow extends GoalRow {
   tracker_name: string;
+  tracker_kind: TrackerKind;
   tracker_unit: string;
   tracker_icon: string | null;
   tracker_color: string | null;
@@ -43,6 +46,7 @@ const GOAL_WITH_TRACKER_SELECT = `
   SELECT
     g.*,
     t.name AS tracker_name,
+    t.kind AS tracker_kind,
     t.unit AS tracker_unit,
     t.icon AS tracker_icon,
     t.color AS tracker_color,
@@ -71,6 +75,7 @@ function mapTracker(row: GoalWithTrackerRow): Tracker {
   return {
     id: row.tracker_id,
     name: row.tracker_name,
+    kind: row.tracker_kind,
     unit: row.tracker_unit,
     icon: row.tracker_icon,
     color: row.tracker_color,
@@ -172,13 +177,19 @@ export async function findGoalForPeriod(
 }
 
 export async function createGoal(db: SQLiteDatabase, input: CreateGoalInput): Promise<Goal> {
-  assertTarget(input.target);
+  const tracker = await getTracker(db, input.trackerId);
+  if (!tracker) {
+    throw new Error('This tracker no longer exists.');
+  }
+
+  const target = tracker.kind === 'check' ? 1 : input.target;
+  assertTarget(target);
 
   const goal: Goal = {
     id: randomUUID(),
     trackerId: input.trackerId,
     period: input.period,
-    target: input.target,
+    target,
     reminderTime: input.reminderTime ?? null,
     archived: false,
     sortOrder: input.sortOrder ?? 0,
@@ -210,7 +221,12 @@ export async function updateGoal(
     throw new Error('This goal no longer exists.');
   }
 
-  const target = input.target ?? current.target;
+  const tracker = await getTracker(db, current.trackerId);
+  if (!tracker) {
+    throw new Error('This tracker no longer exists.');
+  }
+
+  const target = tracker.kind === 'check' ? 1 : (input.target ?? current.target);
   assertTarget(target);
 
   await db.runAsync(

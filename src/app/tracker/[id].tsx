@@ -77,11 +77,16 @@ function TrackerEditForm({ tracker, goals }: TrackerData) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const isCheck = tracker.kind === 'check';
   const allPeriodsCovered = goals.length >= 4;
 
   async function handleSave() {
-    const step = parseAmount(defaultStep);
-    if (!name.trim() || !unit.trim()) {
+    const step = isCheck ? 1 : parseAmount(defaultStep);
+    if (!name.trim()) {
+      setError(strings.goalForm.trackerNameError);
+      return;
+    }
+    if (!isCheck && !unit.trim()) {
       setError(strings.goalForm.trackerError);
       return;
     }
@@ -95,8 +100,7 @@ function TrackerEditForm({ tracker, goals }: TrackerData) {
     try {
       await updateTracker(db, tracker.id, {
         name,
-        unit,
-        defaultStep: step,
+        ...(isCheck ? {} : { unit, defaultStep: step }),
         icon,
         color,
       });
@@ -137,44 +141,59 @@ function TrackerEditForm({ tracker, goals }: TrackerData) {
 
   return (
     <>
-      <View style={styles.row}>
-        <View style={styles.half}>
-          <TextField
-            label={strings.goalForm.name}
-            value={name}
-            onChangeText={(value) => {
-              setName(value);
-              setError(null);
-            }}
-            maxLength={40}
-          />
-        </View>
-        <View style={styles.half}>
-          <TextField
-            label={strings.goalForm.unit}
-            value={unit}
-            onChangeText={(value) => {
-              setUnit(value);
-              setError(null);
-            }}
-            maxLength={16}
-            hint={strings.goalForm.unitHint}
-          />
-        </View>
-      </View>
+      {isCheck ? (
+        <TextField
+          label={strings.goalForm.name}
+          value={name}
+          onChangeText={(value) => {
+            setName(value);
+            setError(null);
+          }}
+          maxLength={40}
+          hint={strings.trackerForm.checkHint}
+        />
+      ) : (
+        <>
+          <View style={styles.row}>
+            <View style={styles.half}>
+              <TextField
+                label={strings.goalForm.name}
+                value={name}
+                onChangeText={(value) => {
+                  setName(value);
+                  setError(null);
+                }}
+                maxLength={40}
+              />
+            </View>
+            <View style={styles.half}>
+              <TextField
+                label={strings.goalForm.unit}
+                value={unit}
+                onChangeText={(value) => {
+                  setUnit(value);
+                  setError(null);
+                }}
+                maxLength={16}
+                hint={strings.goalForm.unitHint}
+              />
+            </View>
+          </View>
 
-      <TextField
-        label={strings.goalForm.defaultStep}
-        value={defaultStep}
-        onChangeText={(value) => {
-          setDefaultStep(value);
-          setError(null);
-        }}
-        keyboardType="decimal-pad"
-        inputMode="decimal"
-        hint={strings.goalForm.defaultStepHint}
-        suffix={unit.trim() || undefined}
-      />
+          <TextField
+            label={strings.goalForm.defaultStep}
+            value={defaultStep}
+            onChangeText={(value) => {
+              setDefaultStep(value);
+              setError(null);
+            }}
+            keyboardType="decimal-pad"
+            inputMode="decimal"
+            hint={strings.goalForm.defaultStepHint}
+            suffix={unit.trim() || undefined}
+          />
+        </>
+      )}
 
       <View style={styles.section}>
         <AppText variant="label" color={theme.textMuted}>

@@ -118,7 +118,7 @@ export default function StatsScreen() {
                         {tracker.name}
                       </AppText>
                       <AppText variant="caption" color={theme.textMuted}>
-                        {tracker.unit}
+                        {tracker.kind === 'check' ? strings.check.checklist : tracker.unit}
                       </AppText>
                     </View>
                   </View>

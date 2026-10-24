@@ -63,6 +63,14 @@ export async function seedDemoData(db: SQLiteDatabase, now: Date = new Date()): 
       sortOrder: 3,
     });
 
+    const meditation = await createTracker(db, {
+      name: 'Meditation',
+      kind: 'check',
+      icon: 'sprout',
+      color: trackerPalette[2],
+      sortOrder: 4,
+    });
+
     await createGoal(db, { trackerId: reading.id, period: 'daily', target: 50, sortOrder: 0 });
     await createGoal(db, { trackerId: reading.id, period: 'weekly', target: 350, sortOrder: 1 });
     await createGoal(db, { trackerId: reading.id, period: 'monthly', target: 1000, sortOrder: 2 });
@@ -74,6 +82,8 @@ export async function seedDemoData(db: SQLiteDatabase, now: Date = new Date()): 
     await createGoal(db, { trackerId: water.id, period: 'daily', target: 2, sortOrder: 0 });
 
     await createGoal(db, { trackerId: workout.id, period: 'weekly', target: 4, sortOrder: 0 });
+
+    await createGoal(db, { trackerId: meditation.id, period: 'daily', target: 1, sortOrder: 0 });
 
     const readingLogs: [number, number][] = [
       [0, 23],
@@ -91,6 +101,8 @@ export async function seedDemoData(db: SQLiteDatabase, now: Date = new Date()): 
     await createLog(db, { trackerId: water.id, amount: 2, loggedAt: at(1, 9, now) });
     await createLog(db, { trackerId: workout.id, amount: 1, loggedAt: at(1, 18, now) });
     await createLog(db, { trackerId: workout.id, amount: 1, loggedAt: at(4, 18, now) });
+    await createLog(db, { trackerId: meditation.id, amount: 1, loggedAt: at(0, 7, now) });
+    await createLog(db, { trackerId: meditation.id, amount: 1, loggedAt: at(1, 7, now) });
   });
 
   return { created: true };

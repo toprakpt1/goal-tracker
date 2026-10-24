@@ -113,7 +113,8 @@ export default function GoalsScreen() {
                       {tracker.name}
                     </AppText>
                     <AppText variant="caption" color={theme.textMuted}>
-                      {strings.goals.goalCount(goals.length)} · {tracker.unit}
+                      {strings.goals.goalCount(goals.length)} ·{' '}
+                      {tracker.kind === 'check' ? strings.check.checklist : tracker.unit}
                     </AppText>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
@@ -136,7 +137,9 @@ export default function GoalsScreen() {
                         {strings.periods[goal.period]}
                       </AppText>
                       <AppText variant="bodyStrong">
-                        {formatAmount(goal.target)} {tracker.unit}
+                        {tracker.kind === 'check'
+                          ? strings.check.checklist
+                          : `${formatAmount(goal.target)} ${tracker.unit}`}
                       </AppText>
                       <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
                     </Pressable>

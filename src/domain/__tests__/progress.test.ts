@@ -74,6 +74,16 @@ describe('getProgress', () => {
     expect(progress.percent).toBe(0);
     expect(progress.ratio).toBe(0);
   });
+
+  it('completes a checklist goal with a single tick', () => {
+    const progress = getProgress(1, [at(9, 1)], day);
+
+    expect(progress.total).toBe(1);
+    expect(progress.isComplete).toBe(true);
+    expect(progress.ratio).toBe(1);
+    expect(progress.percent).toBe(100);
+    expect(progress.overshoot).toBe(0);
+  });
 });
 
 describe('getGoalProgress', () => {

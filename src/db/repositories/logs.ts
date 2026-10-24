@@ -131,3 +131,24 @@ export async function createLog(db: SQLiteDatabase, input: CreateLogInput): Prom
 export async function deleteLog(db: SQLiteDatabase, logId: string): Promise<void> {
   await db.runAsync('DELETE FROM logs WHERE id = ?', logId);
 }
+
+/**
+ * Removes every log of a tracker inside a period. Checklist goals use this when
+ * the user unticks a completed period; the logs are the single source of truth,
+ * so progress and streaks update as soon as they are gone.
+ */
+export async function deleteLogsForTrackerBetween(
+  db: SQLiteDatabase,
+  trackerId: string,
+  start: number,
+  end: number,
+): Promise<number> {
+  const result = await db.runAsync(
+    `DELETE FROM logs
+     WHERE tracker_id = ? AND logged_at >= ? AND logged_at < ?`,
+    trackerId,
+    start,
+    end,
+  );
+  return result.changes;
+}

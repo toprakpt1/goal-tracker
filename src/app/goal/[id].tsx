@@ -17,7 +17,11 @@ import { Screen } from '@/components/screen';
 import { TrackerIcon } from '@/components/tracker-icon';
 import { UndoToast } from '@/components/undo-toast';
 import { loadGoalDetail } from '@/db/goal-detail';
-import type { LogSaveResult, NewCompletion } from '@/db/logging';
+import {
+  toggleCheckGoal,
+  type LogSaveResult,
+  type NewCompletion,
+} from '@/db/logging';
 import { archiveGoal } from '@/db/repositories/goals';
 import { deleteLog } from '@/db/repositories/logs';
 import { getProgress } from '@/domain/progress';
@@ -49,6 +53,7 @@ export default function GoalDetailScreen() {
   const goalId = params.id ?? '';
 
   const [sheetVisible, setSheetVisible] = useState(false);
+  const [toggling, setToggling] = useState(false);
   const [undo, setUndo] = useState<UndoState | null>(null);
   const [celebrations, setCelebrations] = useState<NewCompletion[]>([]);
   const [pendingUndo, setPendingUndo] = useState<UndoState | null>(null);
@@ -83,6 +88,7 @@ export default function GoalDetailScreen() {
       : null;
   const color = goal?.tracker.color ?? theme.primary;
   const streakUnit = goal ? strings.streak.units[goal.period] : '';
+  const isCheck = goal?.tracker.kind === 'check';
 
   function showUndo(logId: string, message: string) {
     if (undoTimer.current) {
@@ -100,7 +106,10 @@ export default function GoalDetailScreen() {
       return;
     }
 
-    const message = strings.today.logged(formatAmount(result.log.amount), goal.tracker.unit);
+    const message =
+      goal.tracker.kind === 'check'
+        ? strings.check.markedDone
+        : strings.today.logged(formatAmount(result.log.amount), goal.tracker.unit);
 
     if (settings.hapticsEnabled) {
       if (result.completions.length > 0) {
@@ -124,6 +133,31 @@ export default function GoalDetailScreen() {
     if (pendingUndo) {
       showUndo(pendingUndo.logId, pendingUndo.message);
       setPendingUndo(null);
+    }
+  }
+
+  async function handleToggleCheck() {
+    if (!goal || toggling) {
+      return;
+    }
+
+    setToggling(true);
+    try {
+      const outcome = await toggleCheckGoal(db, goal, today, settings.weekStartsOn);
+      notifyDataChanged();
+
+      if (outcome.action === 'checked' && outcome.result) {
+        handleLogged(outcome.result);
+      } else if (settings.hapticsEnabled) {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (checkError) {
+      Alert.alert(
+        strings.common.errorTitle,
+        checkError instanceof Error ? checkError.message : String(checkError),
+      );
+    } finally {
+      setToggling(false);
     }
   }
 
@@ -156,8 +190,13 @@ export default function GoalDetailScreen() {
     }
 
     Alert.alert(
-      strings.goalDetail.deleteLogTitle,
-      strings.goalDetail.deleteLogBody(formatAmount(log.amount), goal.tracker.unit),
+      isCheck ? strings.check.deleteCheckTitle : strings.goalDetail.deleteLogTitle,
+      isCheck
+        ? strings.check.deleteCheckBody
+        : strings.goalDetail.deleteLogBody(
+            formatAmount(log.amount),
+            goal.tracker.unit,
+          ),
       [
         { text: strings.common.cancel, style: 'cancel' },
         {
@@ -261,16 +300,22 @@ export default function GoalDetailScreen() {
                 </View>
                 <View style={styles.summaryText}>
                   <AppText variant="caption" color={theme.textMuted}>
-                    {strings.goalDetail.progress}
+                    {isCheck ? strings.check.status : strings.goalDetail.progress}
                   </AppText>
-                  <View style={styles.amountRow}>
-                    <AppText style={styles.amount}>{formatAmount(progress.total)}</AppText>
-                    <AppText variant="body" color={theme.textMuted}>
-                      / {formatAmount(progress.target)} {goal.tracker.unit}
+                  {isCheck ? (
+                    <AppText style={styles.checkStatus}>
+                      {progress.isComplete ? strings.check.done : strings.check.notDone}
                     </AppText>
-                  </View>
+                  ) : (
+                    <View style={styles.amountRow}>
+                      <AppText style={styles.amount}>{formatAmount(progress.total)}</AppText>
+                      <AppText variant="body" color={theme.textMuted}>
+                        / {formatAmount(progress.target)} {goal.tracker.unit}
+                      </AppText>
+                    </View>
+                  )}
                 </View>
-                {progress.isComplete ? (
+                {isCheck ? null : progress.isComplete ? (
                   <View style={[styles.doneBadge, { backgroundColor: withAlpha(theme.success, 0.14) }]}>
                     <Ionicons name="checkmark-circle" size={16} color={theme.success} />
                     <AppText variant="caption" color={theme.success} style={styles.doneText}>
@@ -284,27 +329,36 @@ export default function GoalDetailScreen() {
                 )}
               </View>
 
-              <ProgressBar ratio={progress.ratio} color={color} height={10} />
+              <ProgressBar
+                ratio={progress.ratio}
+                color={progress.isComplete ? theme.success : color}
+                height={10}
+              />
 
               <View style={styles.summaryFooter}>
                 <AppText variant="caption" color={theme.textMuted}>
-                  {strings.periods[goal.period]} · {goal.tracker.unit}
+                  {strings.periods[goal.period]} ·{' '}
+                  {isCheck ? strings.check.checklist : goal.tracker.unit}
                 </AppText>
                 <AppText
                   variant="caption"
                   color={progress.isComplete ? theme.success : theme.textMuted}
                 >
-                  {progress.isComplete
-                    ? progress.overshoot > 0
-                      ? strings.today.overshoot(
-                          formatAmount(progress.overshoot),
+                  {isCheck
+                    ? progress.isComplete
+                      ? strings.check.footerDone
+                      : strings.check.footerPending
+                    : progress.isComplete
+                      ? progress.overshoot > 0
+                        ? strings.today.overshoot(
+                            formatAmount(progress.overshoot),
+                            goal.tracker.unit,
+                          )
+                        : strings.today.done
+                      : strings.today.remaining(
+                          formatAmount(progress.remaining),
                           goal.tracker.unit,
-                        )
-                      : strings.today.done
-                    : strings.today.remaining(
-                        formatAmount(progress.remaining),
-                        goal.tracker.unit,
-                      )}
+                        )}
                 </AppText>
               </View>
 
@@ -320,10 +374,28 @@ export default function GoalDetailScreen() {
               ) : null}
             </View>
 
-            <PrimaryButton
-              label={strings.goalDetail.logNow}
-              onPress={() => setSheetVisible(true)}
-            />
+            {isCheck ? (
+              <PrimaryButton
+                label={
+                  progress.isComplete ? strings.check.markUndone : strings.check.markDone
+                }
+                variant={progress.isComplete ? 'secondary' : 'primary'}
+                icon={
+                  <Ionicons
+                    name={progress.isComplete ? 'arrow-undo-outline' : 'checkmark-circle-outline'}
+                    size={18}
+                    color={progress.isComplete ? theme.text : theme.onPrimary}
+                  />
+                }
+                onPress={() => void handleToggleCheck()}
+                loading={toggling}
+              />
+            ) : (
+              <PrimaryButton
+                label={strings.goalDetail.logNow}
+                onPress={() => setSheetVisible(true)}
+              />
+            )}
 
             {streak ? (
               <View
@@ -372,7 +444,9 @@ export default function GoalDetailScreen() {
 
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <AppText variant="heading">{strings.goalDetail.recentLogs}</AppText>
+                <AppText variant="heading">
+                  {isCheck ? strings.check.recentChecks : strings.goalDetail.recentLogs}
+                </AppText>
                 <AppText variant="caption" color={theme.textMuted}>
                   {strings.goalDetail.sharedNote}
                 </AppText>
@@ -404,7 +478,9 @@ export default function GoalDetailScreen() {
                       <View style={styles.logRow}>
                         <View style={styles.logText}>
                           <AppText variant="bodyStrong">
-                            {formatAmount(log.amount)} {goal.tracker.unit}
+                            {isCheck
+                              ? strings.check.checked
+                              : `${formatAmount(log.amount)} ${goal.tracker.unit}`}
                           </AppText>
                           <AppText variant="caption" color={theme.textMuted}>
                             {format(new Date(log.loggedAt), 'MMM d · HH:mm')}
@@ -443,7 +519,7 @@ export default function GoalDetailScreen() {
         )}
       </Screen>
 
-      {sheetVisible && goal ? (
+      {sheetVisible && goal && !isCheck ? (
         <LogSheet
           key={goal.id}
           tracker={goal.tracker}
@@ -521,6 +597,12 @@ const styles = StyleSheet.create({
     lineHeight: 38,
     fontWeight: '700',
     letterSpacing: -0.6,
+  },
+  checkStatus: {
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '700',
+    letterSpacing: -0.4,
   },
   doneBadge: {
     flexDirection: 'row',

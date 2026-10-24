@@ -16,7 +16,12 @@ import { Screen } from '@/components/screen';
 import { SectionHeader } from '@/components/section-header';
 import { UndoToast } from '@/components/undo-toast';
 import { loadDashboard } from '@/db/dashboard';
-import { createLogWithCompletions, type LogSaveResult, type NewCompletion } from '@/db/logging';
+import {
+  createLogWithCompletions,
+  toggleCheckGoal,
+  type LogSaveResult,
+  type NewCompletion,
+} from '@/db/logging';
 import { deleteLog } from '@/db/repositories/logs';
 import { getGoalProgress, type Progress } from '@/domain/progress';
 import type { GoalWithTracker, Period } from '@/domain/types';
@@ -100,8 +105,11 @@ export default function TodayScreen() {
     }, UNDO_TIMEOUT_MS);
   }
 
-  function handleLogged(result: LogSaveResult, unit: string) {
-    const message = strings.today.logged(formatAmount(result.log.amount), unit);
+  function handleLogged(result: LogSaveResult, goal: GoalWithTracker) {
+    const message =
+      goal.tracker.kind === 'check'
+        ? strings.check.markedDone
+        : strings.today.logged(formatAmount(result.log.amount), goal.tracker.unit);
 
     if (settings.hapticsEnabled) {
       if (result.completions.length > 0) {
@@ -118,6 +126,14 @@ export default function TodayScreen() {
     }
 
     showUndo(result.log.id, message);
+  }
+
+  function openGoal(goal: GoalWithTracker) {
+    if (goal.tracker.kind === 'check') {
+      router.push({ pathname: '/goal/[id]', params: { id: goal.id } });
+      return;
+    }
+    setLogGoal(goal);
   }
 
   function handleCelebrationClose() {
@@ -143,7 +159,32 @@ export default function TodayScreen() {
         settings.weekStartsOn,
       );
       notifyDataChanged();
-      handleLogged(result, goal.tracker.unit);
+      handleLogged(result, goal);
+    } catch (logError) {
+      Alert.alert(
+        strings.common.errorTitle,
+        logError instanceof Error ? logError.message : String(logError),
+      );
+    } finally {
+      quickLock.current = false;
+    }
+  }
+
+  async function handleCheckToggle(goal: GoalWithTracker) {
+    if (quickLock.current) {
+      return;
+    }
+    quickLock.current = true;
+
+    try {
+      const outcome = await toggleCheckGoal(db, goal, today, settings.weekStartsOn);
+      notifyDataChanged();
+
+      if (outcome.action === 'checked' && outcome.result) {
+        handleLogged(outcome.result, goal);
+      } else if (settings.hapticsEnabled) {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
     } catch (logError) {
       Alert.alert(
         strings.common.errorTitle,
@@ -246,8 +287,9 @@ export default function TodayScreen() {
                       key={goal.id}
                       goal={goal}
                       progress={progressFor(goal)}
-                      onPress={() => setLogGoal(goal)}
+                      onPress={() => openGoal(goal)}
                       onQuickAdd={() => void handleQuickAdd(goal)}
+                      onToggle={() => void handleCheckToggle(goal)}
                     />
                   ))}
                 </View>
@@ -293,7 +335,8 @@ export default function TodayScreen() {
                           <GoalRow
                             goal={goal}
                             progress={progressFor(goal)}
-                            onPress={() => setLogGoal(goal)}
+                            onPress={() => openGoal(goal)}
+                            onToggle={() => void handleCheckToggle(goal)}
                           />
                         </View>
                       ))}
@@ -316,7 +359,7 @@ export default function TodayScreen() {
           target={logProgress?.target}
           onClose={() => setLogGoal(null)}
           onSaved={(result) => {
-            handleLogged(result, logGoal.tracker.unit);
+            handleLogged(result, logGoal);
           }}
         />
       ) : null}

@@ -13,16 +13,24 @@ import {
 } from 'react-native';
 
 import { AppText } from '@/components/app-text';
+import { CheckToggle } from '@/components/check-toggle';
 import { ColorPicker } from '@/components/color-picker';
 import { IconPicker } from '@/components/icon-picker';
 import { PageHeader } from '@/components/page-header';
 import { PrimaryButton } from '@/components/primary-button';
 import { Screen } from '@/components/screen';
+import { SegmentedControl } from '@/components/segmented-control';
 import { TextField } from '@/components/text-field';
 import { TrackerIcon } from '@/components/tracker-icon';
 import { createGoal, listGoals } from '@/db/repositories/goals';
 import { createTracker, listTrackers } from '@/db/repositories/trackers';
-import { PERIODS, type Goal, type Period, type Tracker } from '@/domain/types';
+import {
+  PERIODS,
+  type Goal,
+  type Period,
+  type Tracker,
+  type TrackerKind,
+} from '@/domain/types';
 import { useDbQuery } from '@/hooks/use-db-query';
 import { strings } from '@/i18n/strings';
 import { withAlpha } from '@/lib/color';
@@ -41,6 +49,11 @@ const EMPTY_TARGETS: Record<Period, string> = {
   monthly: '',
   yearly: '',
 };
+const DEFAULT_CHECK_PERIODS: Period[] = ['daily'];
+const TRACKER_KIND_OPTIONS = [
+  { value: 'numeric', label: strings.goalForm.kindNumeric },
+  { value: 'check', label: strings.goalForm.kindCheck },
+] as const;
 
 export default function NewGoalScreen() {
   const theme = useTheme();
@@ -61,6 +74,8 @@ export default function NewGoalScreen() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [targets, setTargets] = useState<Record<Period, string>>(EMPTY_TARGETS);
+  const [kind, setKind] = useState<TrackerKind>('numeric');
+  const [checkPeriods, setCheckPeriods] = useState<Period[]>(DEFAULT_CHECK_PERIODS);
   const [name, setName] = useState('');
   const [unit, setUnit] = useState('');
   const [icon, setIcon] = useState('target');
@@ -88,6 +103,24 @@ export default function NewGoalScreen() {
   function chooseTracker(id: string) {
     setSelectedId(id);
     setTargets(EMPTY_TARGETS);
+    setCheckPeriods(id === NEW_TRACKER_ID ? DEFAULT_CHECK_PERIODS : []);
+    setError(null);
+  }
+
+  function chooseKind(next: TrackerKind) {
+    setKind(next);
+    if (next === 'check' && checkPeriods.length === 0) {
+      setCheckPeriods(DEFAULT_CHECK_PERIODS);
+    }
+    setError(null);
+  }
+
+  function toggleCheckPeriod(period: Period) {
+    setCheckPeriods((current) =>
+      current.includes(period)
+        ? current.filter((value) => value !== period)
+        : [...current, period],
+    );
     setError(null);
   }
 
@@ -112,6 +145,9 @@ export default function NewGoalScreen() {
   }, [data, currentId]);
 
   const creatingTracker = currentId === NEW_TRACKER_ID;
+  const activeKind: TrackerKind = creatingTracker
+    ? kind
+    : (selectedTracker?.kind ?? 'numeric');
   const effectiveUnit = creatingTracker ? unit.trim() : selectedTracker?.unit ?? '';
 
   async function handleSave() {
@@ -125,12 +161,19 @@ export default function NewGoalScreen() {
       if (existingGoals[period]) {
         return [];
       }
+      if (activeKind === 'check') {
+        return checkPeriods.includes(period) ? [{ period, target: 1 }] : [];
+      }
       const target = parseAmount(targets[period]);
       return target === null ? [] : [{ period, target }];
     });
 
     if (entries.length === 0) {
-      setError(strings.goalForm.targetError);
+      setError(
+        activeKind === 'check'
+          ? strings.goalForm.checkPeriodError
+          : strings.goalForm.targetError,
+      );
       return;
     }
 
@@ -142,22 +185,39 @@ export default function NewGoalScreen() {
     }
 
     let trackerId = currentId;
-    let newTracker: { name: string; unit: string; step: number } | null = null;
+    let newTracker:
+      | { name: string; kind: TrackerKind; unit: string; step: number }
+      | null = null;
 
     if (creatingTracker) {
       const trimmedName = name.trim();
       const trimmedUnit = unit.trim();
-      const step = parseAmount(defaultStep);
 
-      if (!trimmedName || !trimmedUnit) {
+      if (!trimmedName) {
+        setError(
+          activeKind === 'check'
+            ? strings.goalForm.trackerNameError
+            : strings.goalForm.trackerError,
+        );
+        return;
+      }
+      if (activeKind === 'numeric' && !trimmedUnit) {
         setError(strings.goalForm.trackerError);
         return;
       }
+
+      const step = activeKind === 'check' ? 1 : parseAmount(defaultStep);
       if (!step) {
         setError(strings.goalForm.stepError);
         return;
       }
-      newTracker = { name: trimmedName, unit: trimmedUnit, step };
+
+      newTracker = {
+        name: trimmedName,
+        kind: activeKind,
+        unit: activeKind === 'check' ? '' : trimmedUnit,
+        step,
+      };
     }
 
     setSaving(true);
@@ -166,6 +226,7 @@ export default function NewGoalScreen() {
         if (newTracker) {
           const created = await createTracker(db, {
             name: newTracker.name,
+            kind: newTracker.kind,
             unit: newTracker.unit,
             icon,
             color,
@@ -327,37 +388,65 @@ export default function NewGoalScreen() {
                 { backgroundColor: theme.surface, borderColor: theme.border },
               ]}
             >
-              <View style={styles.row}>
-                <View style={styles.half}>
-                  <TextField
-                    label={strings.goalForm.name}
-                    value={name}
-                    onChangeText={setName}
-                    placeholder={strings.goalForm.namePlaceholder}
-                    maxLength={40}
-                  />
-                </View>
-                <View style={styles.half}>
-                  <TextField
-                    label={strings.goalForm.unit}
-                    value={unit}
-                    onChangeText={setUnit}
-                    placeholder={strings.goalForm.unitPlaceholder}
-                    maxLength={16}
-                    hint={strings.goalForm.unitHint}
-                  />
-                </View>
+              <View style={styles.pickerBlock}>
+                <AppText variant="label" color={theme.textMuted}>
+                  {strings.goalForm.trackerKind}
+                </AppText>
+                <SegmentedControl
+                  options={TRACKER_KIND_OPTIONS}
+                  value={kind}
+                  onChange={chooseKind}
+                />
+                <AppText variant="caption" color={theme.textMuted}>
+                  {kind === 'check'
+                    ? strings.goalForm.kindCheckHint
+                    : strings.goalForm.kindNumericHint}
+                </AppText>
               </View>
 
-              <TextField
-                label={strings.goalForm.defaultStep}
-                value={defaultStep}
-                onChangeText={setDefaultStep}
-                keyboardType="decimal-pad"
-                inputMode="decimal"
-                hint={strings.goalForm.defaultStepHint}
-                suffix={unit.trim() || undefined}
-              />
+              {kind === 'check' ? (
+                <TextField
+                  label={strings.goalForm.name}
+                  value={name}
+                  onChangeText={setName}
+                  placeholder={strings.goalForm.namePlaceholder}
+                  maxLength={40}
+                />
+              ) : (
+                <View style={styles.row}>
+                  <View style={styles.half}>
+                    <TextField
+                      label={strings.goalForm.name}
+                      value={name}
+                      onChangeText={setName}
+                      placeholder={strings.goalForm.namePlaceholder}
+                      maxLength={40}
+                    />
+                  </View>
+                  <View style={styles.half}>
+                    <TextField
+                      label={strings.goalForm.unit}
+                      value={unit}
+                      onChangeText={setUnit}
+                      placeholder={strings.goalForm.unitPlaceholder}
+                      maxLength={16}
+                      hint={strings.goalForm.unitHint}
+                    />
+                  </View>
+                </View>
+              )}
+
+              {kind === 'numeric' ? (
+                <TextField
+                  label={strings.goalForm.defaultStep}
+                  value={defaultStep}
+                  onChangeText={setDefaultStep}
+                  keyboardType="decimal-pad"
+                  inputMode="decimal"
+                  hint={strings.goalForm.defaultStepHint}
+                  suffix={unit.trim() || undefined}
+                />
+              ) : null}
 
               <View style={styles.pickerBlock}>
                 <AppText variant="label" color={theme.textMuted}>
@@ -378,10 +467,14 @@ export default function NewGoalScreen() {
           <View style={styles.section}>
             <View style={styles.targetsHeader}>
               <AppText variant="label" color={theme.textMuted}>
-                {strings.goalForm.targetsLabel}
+                {activeKind === 'check'
+                  ? strings.goalForm.checkPeriodsLabel
+                  : strings.goalForm.targetsLabel}
               </AppText>
               <AppText variant="caption" color={theme.textMuted} style={styles.targetsHint}>
-                {strings.goalForm.targetsHint}
+                {activeKind === 'check'
+                  ? strings.goalForm.checkPeriodsHint
+                  : strings.goalForm.targetsHint}
               </AppText>
             </View>
 
@@ -393,6 +486,7 @@ export default function NewGoalScreen() {
             >
               {PERIODS.map((period, index) => {
                 const existing = existingGoals[period];
+                const checkSelected = checkPeriods.includes(period);
                 return (
                   <View key={period}>
                     {index > 0 ? (
@@ -403,13 +497,25 @@ export default function NewGoalScreen() {
                         <AppText variant="bodyStrong">{strings.periods[period]}</AppText>
                         <AppText variant="caption" color={theme.textMuted}>
                           {existing
-                            ? `${formatAmount(existing.target)} ${effectiveUnit} · ${strings.goalForm.alreadyTracked}`
-                            : effectiveUnit}
+                            ? activeKind === 'check'
+                              ? `${strings.check.checklist} · ${strings.goalForm.alreadyTracked}`
+                              : `${formatAmount(existing.target)} ${effectiveUnit} · ${
+                                  strings.goalForm.alreadyTracked
+                                }`
+                            : activeKind === 'check'
+                              ? strings.goalForm.checkGoalLabel
+                              : effectiveUnit}
                         </AppText>
                       </View>
 
                       {existing ? (
                         <Ionicons name="checkmark-circle" size={22} color={theme.success} />
+                      ) : activeKind === 'check' ? (
+                        <CheckToggle
+                          checked={checkSelected}
+                          onPress={() => toggleCheckPeriod(period)}
+                          label={`${strings.periods[period]} ${strings.goalForm.checkGoalLabel}`}
+                        />
                       ) : (
                         <View style={styles.targetInput}>
                           <TextField

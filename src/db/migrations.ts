@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { SCHEMA_V1, SCHEMA_V2, SCHEMA_VERSION } from './schema';
+import { SCHEMA_V1, SCHEMA_V2, SCHEMA_V3, SCHEMA_VERSION } from './schema';
 
 /**
  * Runs before any screen renders (see the root layout). Schema changes and the
@@ -31,6 +31,9 @@ export async function migrate(db: SQLiteDatabase): Promise<void> {
     }
     if (currentVersion < 2) {
       await db.execAsync(SCHEMA_V2);
+    }
+    if (currentVersion < 3) {
+      await db.execAsync(SCHEMA_V3);
     }
 
     await db.execAsync(`PRAGMA user_version = ${SCHEMA_VERSION}`);

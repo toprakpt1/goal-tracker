@@ -78,6 +78,7 @@ function GoalEditForm({ goal, goals }: EditGoalData) {
   const [reminderError, setReminderError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  const isCheck = goal.tracker.kind === 'check';
   const color = goal.tracker.color ?? theme.primary;
   const periodOptions = PERIODS.map((value) => ({
     value,
@@ -86,7 +87,7 @@ function GoalEditForm({ goal, goals }: EditGoalData) {
   }));
 
   async function handleSave() {
-    const parsed = parseAmount(target);
+    const parsed = isCheck ? 1 : parseAmount(target);
     if (!parsed) {
       setError(strings.logSheet.invalidAmount);
       return;
@@ -185,7 +186,11 @@ function GoalEditForm({ goal, goals }: EditGoalData) {
             {goal.tracker.name}
           </AppText>
           <AppText variant="caption" color={theme.textMuted}>
-            {strings.periods[goal.period]} · {formatAmount(goal.target)} {goal.tracker.unit}
+            {isCheck
+              ? `${strings.periods[goal.period]} · ${strings.check.checklist}`
+              : `${strings.periods[goal.period]} · ${formatAmount(goal.target)} ${
+                  goal.tracker.unit
+                }`}
           </AppText>
         </View>
       </View>
@@ -197,19 +202,31 @@ function GoalEditForm({ goal, goals }: EditGoalData) {
         <SegmentedControl options={periodOptions} value={period} onChange={setPeriod} />
       </View>
 
-      <TextField
-        label={strings.goalForm.targetLabel}
-        value={target}
-        onChangeText={(value) => {
-          setTarget(value);
-          setError(null);
-        }}
-        keyboardType="decimal-pad"
-        inputMode="decimal"
-        suffix={goal.tracker.unit}
-        error={error}
-        selectTextOnFocus
-      />
+      {isCheck ? (
+        <AppText variant="caption" color={theme.textMuted}>
+          {strings.check.editGoalHint}
+        </AppText>
+      ) : (
+        <TextField
+          label={strings.goalForm.targetLabel}
+          value={target}
+          onChangeText={(value) => {
+            setTarget(value);
+            setError(null);
+          }}
+          keyboardType="decimal-pad"
+          inputMode="decimal"
+          suffix={goal.tracker.unit}
+          error={error}
+          selectTextOnFocus
+        />
+      )}
+
+      {isCheck && error ? (
+        <AppText variant="caption" color={theme.danger}>
+          {error}
+        </AppText>
+      ) : null}
 
       <TextField
         label={strings.goalForm.reminder}

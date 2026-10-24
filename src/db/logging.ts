@@ -5,7 +5,12 @@ import { getProgress, type Progress } from '@/domain/progress';
 import type { GoalWithTracker, LogEntry, PeriodRange, WeekStartsOn } from '@/domain/types';
 
 import { listGoalsWithTracker } from './repositories/goals';
-import { createLog, listLogsForTrackerBetween, type CreateLogInput } from './repositories/logs';
+import {
+  createLog,
+  deleteLogsForTrackerBetween,
+  listLogsForTrackerBetween,
+  type CreateLogInput,
+} from './repositories/logs';
 import {
   completionKey,
   insertCompletion,
@@ -93,4 +98,50 @@ async function detectCompletions(
   }
 
   return completions;
+}
+
+export interface CheckToggleResult {
+  action: 'checked' | 'unchecked';
+  /** Present when the toggle added a log. */
+  result?: LogSaveResult;
+  /** Number of logs removed when the toggle unticked a completed period. */
+  removed: number;
+}
+
+/**
+ * Checklist goals are binary per period: any log completes the period. Ticking
+ * adds one log, unticking removes the tracker's logs inside that goal's period.
+ */
+export async function toggleCheckGoal(
+  db: SQLiteDatabase,
+  goal: GoalWithTracker,
+  now: Date = new Date(),
+  weekStartsOn: WeekStartsOn = 1,
+): Promise<CheckToggleResult> {
+  const range = getPeriodRange(goal.period, now, weekStartsOn);
+  const logs = await listLogsForTrackerBetween(
+    db,
+    goal.trackerId,
+    range.start.getTime(),
+    range.end.getTime(),
+  );
+  const progress = getProgress(goal.target, logs, range);
+
+  if (progress.isComplete) {
+    const removed = await deleteLogsForTrackerBetween(
+      db,
+      goal.trackerId,
+      range.start.getTime(),
+      range.end.getTime(),
+    );
+    return { action: 'unchecked', removed };
+  }
+
+  const result = await createLogWithCompletions(
+    db,
+    { trackerId: goal.trackerId, amount: 1 },
+    now,
+    weekStartsOn,
+  );
+  return { action: 'checked', result, removed: 0 };
 }
