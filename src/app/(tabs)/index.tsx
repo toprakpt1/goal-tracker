@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
+import { CompletionCelebration } from '@/components/completion-celebration';
 import { EmptyState } from '@/components/empty-state';
 import { GoalCard } from '@/components/goal-card';
 import { GoalRow } from '@/components/goal-row';
@@ -14,7 +15,8 @@ import { Screen } from '@/components/screen';
 import { SectionHeader } from '@/components/section-header';
 import { UndoToast } from '@/components/undo-toast';
 import { loadDashboard } from '@/db/dashboard';
-import { createLog, deleteLog } from '@/db/repositories/logs';
+import { createLogWithCompletions, type LogSaveResult, type NewCompletion } from '@/db/logging';
+import { deleteLog } from '@/db/repositories/logs';
 import { getGoalProgress, type Progress } from '@/domain/progress';
 import type { GoalWithTracker, Period } from '@/domain/types';
 import { useDbQuery } from '@/hooks/use-db-query';
@@ -46,6 +48,8 @@ export default function TodayScreen() {
   });
   const [logGoal, setLogGoal] = useState<GoalWithTracker | null>(null);
   const [undo, setUndo] = useState<UndoState | null>(null);
+  const [celebrations, setCelebrations] = useState<NewCompletion[]>([]);
+  const [pendingUndo, setPendingUndo] = useState<UndoState | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const quickLock = useRef(false);
 
@@ -95,6 +99,26 @@ export default function TodayScreen() {
     }, UNDO_TIMEOUT_MS);
   }
 
+  function handleLogged(result: LogSaveResult, unit: string) {
+    const message = strings.today.logged(formatAmount(result.log.amount), unit);
+
+    if (result.completions.length > 0) {
+      setCelebrations(result.completions);
+      setPendingUndo({ logId: result.log.id, message });
+      return;
+    }
+
+    showUndo(result.log.id, message);
+  }
+
+  function handleCelebrationClose() {
+    setCelebrations([]);
+    if (pendingUndo) {
+      showUndo(pendingUndo.logId, pendingUndo.message);
+      setPendingUndo(null);
+    }
+  }
+
   async function handleQuickAdd(goal: GoalWithTracker) {
     if (quickLock.current) {
       return;
@@ -103,9 +127,14 @@ export default function TodayScreen() {
 
     try {
       const amount = goal.tracker.defaultStep;
-      const log = await createLog(db, { trackerId: goal.trackerId, amount });
+      const result = await createLogWithCompletions(
+        db,
+        { trackerId: goal.trackerId, amount },
+        today,
+        settings.weekStartsOn,
+      );
       notifyDataChanged();
-      showUndo(log.id, strings.today.logged(formatAmount(amount), goal.tracker.unit));
+      handleLogged(result, goal.tracker.unit);
     } catch (logError) {
       Alert.alert(
         strings.common.errorTitle,
@@ -272,18 +301,21 @@ export default function TodayScreen() {
         <LogSheet
           key={logGoal.id}
           tracker={logGoal.tracker}
+          weekStartsOn={settings.weekStartsOn}
           subtitle={strings.periods[logGoal.period]}
           total={logProgress?.total}
           target={logProgress?.target}
           onClose={() => setLogGoal(null)}
-          onSaved={(log) => {
-            showUndo(
-              log.id,
-              strings.today.logged(formatAmount(log.amount), logGoal.tracker.unit),
-            );
+          onSaved={(result) => {
+            handleLogged(result, logGoal.tracker.unit);
           }}
         />
       ) : null}
+
+      <CompletionCelebration
+        completions={celebrations}
+        onClose={handleCelebrationClose}
+      />
 
       <UndoToast
         visible={undo !== null}

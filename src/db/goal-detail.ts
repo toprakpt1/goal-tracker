@@ -4,7 +4,11 @@ import { getPeriodRange } from '@/domain/period';
 import type { GoalWithTracker, LogEntry, PeriodRange, WeekStartsOn } from '@/domain/types';
 
 import { getGoalWithTracker } from './repositories/goals';
-import { listLogsForTracker, listLogsForTrackerBetween } from './repositories/logs';
+import {
+  listAllLogsForTracker,
+  listLogsForTracker,
+  listLogsForTrackerBetween,
+} from './repositories/logs';
 
 export interface GoalDetailData {
   goal: GoalWithTracker;
@@ -13,6 +17,8 @@ export interface GoalDetailData {
   periodLogs: LogEntry[];
   /** Newest-first history for the tracker, potentially older than the period. */
   recentLogs: LogEntry[];
+  /** Oldest-first tracker history used to derive streaks. */
+  streakLogs: LogEntry[];
 }
 
 /**
@@ -31,10 +37,11 @@ export async function loadGoalDetail(
   }
 
   const range = getPeriodRange(goal.period, now, weekStartsOn);
-  const [periodLogs, recentLogs] = await Promise.all([
+  const [periodLogs, recentLogs, streakLogs] = await Promise.all([
     listLogsForTrackerBetween(db, goal.trackerId, range.start.getTime(), range.end.getTime()),
     listLogsForTracker(db, goal.trackerId, 20),
+    listAllLogsForTracker(db, goal.trackerId),
   ]);
 
-  return { goal, range, periodLogs, recentLogs };
+  return { goal, range, periodLogs, recentLogs, streakLogs };
 }

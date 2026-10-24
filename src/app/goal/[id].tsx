@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
+import { CompletionCelebration } from '@/components/completion-celebration';
 import { EmptyState } from '@/components/empty-state';
 import { LogSheet } from '@/components/log-sheet';
 import { PageHeader } from '@/components/page-header';
@@ -15,9 +16,11 @@ import { Screen } from '@/components/screen';
 import { TrackerIcon } from '@/components/tracker-icon';
 import { UndoToast } from '@/components/undo-toast';
 import { loadGoalDetail } from '@/db/goal-detail';
+import type { LogSaveResult, NewCompletion } from '@/db/logging';
 import { archiveGoal } from '@/db/repositories/goals';
 import { deleteLog } from '@/db/repositories/logs';
 import { getProgress } from '@/domain/progress';
+import { getStreakSummary } from '@/domain/streak';
 import type { LogEntry } from '@/domain/types';
 import { useDbQuery } from '@/hooks/use-db-query';
 import { useSettings } from '@/hooks/use-settings';
@@ -45,6 +48,8 @@ export default function GoalDetailScreen() {
 
   const [sheetVisible, setSheetVisible] = useState(false);
   const [undo, setUndo] = useState<UndoState | null>(null);
+  const [celebrations, setCelebrations] = useState<NewCompletion[]>([]);
+  const [pendingUndo, setPendingUndo] = useState<UndoState | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const dateKey = format(today, 'yyyy-MM-dd');
@@ -64,7 +69,18 @@ export default function GoalDetailScreen() {
   const detail = data ?? null;
   const goal = detail?.goal ?? null;
   const progress = detail ? getProgress(goal?.target ?? 0, detail.periodLogs, detail.range) : null;
+  const streak =
+    detail && goal
+      ? getStreakSummary(
+          goal.period,
+          goal.target,
+          detail.streakLogs,
+          today,
+          settings.weekStartsOn,
+        )
+      : null;
   const color = goal?.tracker.color ?? theme.primary;
+  const streakUnit = goal ? strings.streak.units[goal.period] : '';
 
   function showUndo(logId: string, message: string) {
     if (undoTimer.current) {
@@ -75,6 +91,30 @@ export default function GoalDetailScreen() {
       setUndo(null);
       undoTimer.current = null;
     }, UNDO_TIMEOUT_MS);
+  }
+
+  function handleLogged(result: LogSaveResult) {
+    if (!goal) {
+      return;
+    }
+
+    const message = strings.today.logged(formatAmount(result.log.amount), goal.tracker.unit);
+
+    if (result.completions.length > 0) {
+      setCelebrations(result.completions);
+      setPendingUndo({ logId: result.log.id, message });
+      return;
+    }
+
+    showUndo(result.log.id, message);
+  }
+
+  function handleCelebrationClose() {
+    setCelebrations([]);
+    if (pendingUndo) {
+      showUndo(pendingUndo.logId, pendingUndo.message);
+      setPendingUndo(null);
+    }
   }
 
   async function handleUndo() {
@@ -263,6 +303,51 @@ export default function GoalDetailScreen() {
               onPress={() => setSheetVisible(true)}
             />
 
+            {streak ? (
+              <View
+                style={[
+                  styles.streakCard,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+              >
+                <View style={styles.streakHalf}>
+                  <View
+                    style={[styles.streakIcon, { backgroundColor: withAlpha(theme.warning, 0.14) }]}
+                  >
+                    <Ionicons name="flame" size={19} color={theme.warning} />
+                  </View>
+                  <View style={styles.streakText}>
+                    <AppText variant="caption" color={theme.textMuted}>
+                      {strings.streak.current}
+                    </AppText>
+                    <AppText variant="bodyStrong" numberOfLines={1}>
+                      {streak.current > 0
+                        ? strings.streak.value(streak.current, streakUnit)
+                        : strings.streak.none}
+                    </AppText>
+                  </View>
+                </View>
+
+                <View style={[styles.streakDivider, { backgroundColor: theme.border }]} />
+
+                <View style={styles.streakHalf}>
+                  <View
+                    style={[styles.streakIcon, { backgroundColor: withAlpha(theme.primary, 0.14) }]}
+                  >
+                    <Ionicons name="trophy-outline" size={19} color={theme.primary} />
+                  </View>
+                  <View style={styles.streakText}>
+                    <AppText variant="caption" color={theme.textMuted}>
+                      {strings.streak.best}
+                    </AppText>
+                    <AppText variant="bodyStrong" numberOfLines={1}>
+                      {strings.streak.value(streak.best, streakUnit)}
+                    </AppText>
+                  </View>
+                </View>
+              </View>
+            ) : null}
+
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <AppText variant="heading">{strings.goalDetail.recentLogs}</AppText>
@@ -340,18 +425,19 @@ export default function GoalDetailScreen() {
         <LogSheet
           key={goal.id}
           tracker={goal.tracker}
+          weekStartsOn={settings.weekStartsOn}
           subtitle={strings.periods[goal.period]}
           total={progress?.total}
           target={progress?.target}
           onClose={() => setSheetVisible(false)}
-          onSaved={(log) => {
-            showUndo(
-              log.id,
-              strings.today.logged(formatAmount(log.amount), goal.tracker.unit),
-            );
-          }}
+          onSaved={handleLogged}
         />
       ) : null}
+
+      <CompletionCelebration
+        completions={celebrations}
+        onClose={handleCelebrationClose}
+      />
 
       <UndoToast
         visible={undo !== null}
@@ -430,6 +516,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.sm,
+  },
+  streakCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: spacing.md,
+  },
+  streakHalf: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  streakIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  streakText: {
+    flex: 1,
+    gap: 1,
+  },
+  streakDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    marginHorizontal: spacing.md,
   },
   section: {
     gap: spacing.sm,

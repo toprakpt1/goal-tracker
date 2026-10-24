@@ -66,6 +66,26 @@ export async function countLogs(db: SQLiteDatabase): Promise<number> {
   return row?.count ?? 0;
 }
 
+/** Oldest first. Used for streak history across every tracker. */
+export async function listAllLogs(db: SQLiteDatabase): Promise<LogEntry[]> {
+  const rows = await db.getAllAsync<LogRow>('SELECT * FROM logs ORDER BY logged_at ASC');
+  return rows.map(mapLog);
+}
+
+/** Oldest first. Used for a single tracker's streak history. */
+export async function listAllLogsForTracker(
+  db: SQLiteDatabase,
+  trackerId: string,
+): Promise<LogEntry[]> {
+  const rows = await db.getAllAsync<LogRow>(
+    `SELECT * FROM logs
+     WHERE tracker_id = ?
+     ORDER BY logged_at ASC`,
+    trackerId,
+  );
+  return rows.map(mapLog);
+}
+
 /** Newest first. Used by the goal detail history. */
 export async function listLogsForTracker(
   db: SQLiteDatabase,

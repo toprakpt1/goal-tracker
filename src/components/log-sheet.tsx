@@ -15,8 +15,8 @@ import { AppText } from '@/components/app-text';
 import { PrimaryButton } from '@/components/primary-button';
 import { TextField } from '@/components/text-field';
 import { TrackerIcon } from '@/components/tracker-icon';
-import { createLog } from '@/db/repositories/logs';
-import type { LogEntry, Tracker } from '@/domain/types';
+import { createLogWithCompletions, type LogSaveResult } from '@/db/logging';
+import type { Tracker, WeekStartsOn } from '@/domain/types';
 import { strings } from '@/i18n/strings';
 import { withAlpha } from '@/lib/color';
 import { formatAmount } from '@/lib/format';
@@ -26,15 +26,17 @@ import { radius, spacing, useTheme } from '@/theme';
 
 interface LogSheetProps {
   tracker: Tracker;
+  weekStartsOn: WeekStartsOn;
   subtitle?: string;
   total?: number;
   target?: number;
   onClose: () => void;
-  onSaved: (log: LogEntry) => void;
+  onSaved: (result: LogSaveResult) => void;
 }
 
 export function LogSheet({
   tracker,
+  weekStartsOn,
   subtitle,
   total,
   target,
@@ -63,13 +65,18 @@ export function LogSheet({
     setSaving(true);
     setError(null);
     try {
-      const log = await createLog(db, {
-        trackerId: tracker.id,
-        amount: parsed,
-        note,
-      });
+      const result = await createLogWithCompletions(
+        db,
+        {
+          trackerId: tracker.id,
+          amount: parsed,
+          note,
+        },
+        new Date(),
+        weekStartsOn,
+      );
       notifyDataChanged();
-      onSaved(log);
+      onSaved(result);
       onClose();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : String(saveError));

@@ -41,9 +41,16 @@ export const strings = {
   },
   stats: {
     title: 'Stats',
-    subtitle: 'Streaks and history will live here.',
+    subtitle: 'Streaks are built from your logged periods.',
     emptyTitle: 'No history yet',
-    emptyBody: 'Once you start logging, your streaks and charts appear here.',
+    emptyBody: 'Once you start logging, your streaks appear here.',
+    emptyAction: 'Create a goal',
+    activeStreaks: 'Active streaks',
+    trackedGoals: 'Goals tracked',
+    completedPeriods: (count: number) =>
+      `${count} ${count === 1 ? 'period' : 'periods'} completed`,
+    best: (value: string) => `Best: ${value}`,
+    noStreak: 'No streak yet',
   },
   settings: {
     title: 'Settings',
@@ -148,5 +155,25 @@ export const strings = {
     weekly: 'Weekly',
     monthly: 'Monthly',
     yearly: 'Yearly',
+  },
+  streak: {
+    current: 'Current streak',
+    best: 'Best streak',
+    none: 'No streak yet',
+    value: (count: number, unit: string) => `${count} ${unit}${count === 1 ? '' : 's'}`,
+    units: {
+      daily: 'day',
+      weekly: 'week',
+      monthly: 'month',
+      yearly: 'year',
+    },
+  },
+  celebration: {
+    title: 'Goal complete',
+    titleMultiple: 'Goals complete',
+    subtitle: 'You hit your target. Keep the momentum going.',
+    subtitleMultiple: 'That log completed more than one goal.',
+    keepGoing: 'Keep going',
+    target: (total: string, target: string, unit: string) => `${total} / ${target} ${unit}`,
   },
 } as const;
