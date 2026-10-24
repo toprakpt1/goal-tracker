@@ -1,0 +1,126 @@
+name: Android APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build & publish APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      CI: '1'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-37.0 build-tools;37.0.0 ndk;27.1.12297006'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Stamp version from tag
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG_NAME#v}"
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::warning::Tag '$TAG_NAME' is not semver (v1.2.3); keeping the version from app.json."
+            exit 0
+          fi
+
+          node - "$VERSION" <<'NODE'
+          const fs = require('node:fs');
+          const [version] = process.argv.slice(2);
+          const [major, minor, patch] = version.split('.').map(Number);
+          const config = JSON.parse(fs.readFileSync('app.json', 'utf8'));
+          config.expo.version = version;
+          config.expo.android = {
+            ...config.expo.android,
+            versionCode: major * 10000 + minor * 100 + patch,
+          };
+          fs.writeFileSync('app.json', `${JSON.stringify(config, null, 2)}\n`);
+          NODE
+
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Prepare APK
+        id: apk
+        run: |
+          set -euo pipefail
+          SOURCE="android/app/build/outputs/apk/release/app-release.apk"
+          test -f "$SOURCE"
+
+          SLUG="$(node -p "require('./app.json').expo.slug")"
+          VERSION="$(node -p "require('./app.json').expo.version")"
+          NAME="${SLUG}-${VERSION}.apk"
+
+          mkdir -p artifacts
+          cp "$SOURCE" "artifacts/$NAME"
+          (cd artifacts && sha256sum "$NAME" > "$NAME.sha256")
+
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "path=artifacts/$NAME" >> "$GITHUB_OUTPUT"
+          ls -lh artifacts
+
+      - name: Upload APK to workflow run
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.apk.outputs.name }}
+          path: |
+            ${{ steps.apk.outputs.path }}
+            ${{ steps.apk.outputs.path }}.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          files: |
+            ${{ steps.apk.outputs.path }}
+            ${{ steps.apk.outputs.path }}.sha256
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
