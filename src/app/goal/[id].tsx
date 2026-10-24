@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
+import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useRef, useState } from 'react';
@@ -28,6 +29,7 @@ import { useToday } from '@/hooks/use-today';
 import { strings } from '@/i18n/strings';
 import { withAlpha } from '@/lib/color';
 import { formatAmount } from '@/lib/format';
+import { syncReminders } from '@/lib/reminders';
 import { notifyDataChanged } from '@/store/db';
 import { radius, spacing, useTheme } from '@/theme';
 
@@ -99,6 +101,14 @@ export default function GoalDetailScreen() {
     }
 
     const message = strings.today.logged(formatAmount(result.log.amount), goal.tracker.unit);
+
+    if (settings.hapticsEnabled) {
+      if (result.completions.length > 0) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    }
 
     if (result.completions.length > 0) {
       setCelebrations(result.completions);
@@ -187,6 +197,7 @@ export default function GoalDetailScreen() {
             try {
               await archiveGoal(db, goal.id);
               notifyDataChanged();
+              await syncReminders(db, settings).catch(() => undefined);
               router.back();
             } catch (archiveError) {
               Alert.alert(
@@ -296,6 +307,17 @@ export default function GoalDetailScreen() {
                       )}
                 </AppText>
               </View>
+
+              {goal.reminderTime ? (
+                <View style={styles.reminderRow}>
+                  <Ionicons name="notifications-outline" size={14} color={theme.textMuted} />
+                  <AppText variant="caption" color={theme.textMuted}>
+                    {settings.notificationsEnabled
+                      ? strings.goalDetail.reminder(goal.reminderTime)
+                      : strings.goalDetail.reminderOff(goal.reminderTime)}
+                  </AppText>
+                </View>
+              ) : null}
             </View>
 
             <PrimaryButton
@@ -516,6 +538,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.sm,
+  },
+  reminderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: -spacing.xs,
   },
   streakCard: {
     flexDirection: 'row',

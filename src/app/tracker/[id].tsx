@@ -15,8 +15,10 @@ import { listGoalsForTracker } from '@/db/repositories/goals';
 import { archiveTracker, getTracker, updateTracker } from '@/db/repositories/trackers';
 import type { Goal, Tracker } from '@/domain/types';
 import { useDbQuery } from '@/hooks/use-db-query';
+import { useSettings } from '@/hooks/use-settings';
 import { strings } from '@/i18n/strings';
 import { parseAmount } from '@/lib/numbers';
+import { syncReminders } from '@/lib/reminders';
 import { notifyDataChanged } from '@/store/db';
 import { radius, spacing, trackerPalette, useTheme } from '@/theme';
 
@@ -66,6 +68,7 @@ export default function EditTrackerScreen() {
 function TrackerEditForm({ tracker, goals }: TrackerData) {
   const theme = useTheme();
   const db = useSQLiteContext();
+  const settings = useSettings();
   const [name, setName] = useState(tracker.name);
   const [unit, setUnit] = useState(tracker.unit);
   const [defaultStep, setDefaultStep] = useState(String(tracker.defaultStep));
@@ -98,6 +101,7 @@ function TrackerEditForm({ tracker, goals }: TrackerData) {
         color,
       });
       notifyDataChanged();
+      await syncReminders(db, settings).catch(() => undefined);
       router.back();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : String(saveError));
@@ -117,6 +121,7 @@ function TrackerEditForm({ tracker, goals }: TrackerData) {
             try {
               await archiveTracker(db, tracker.id);
               notifyDataChanged();
+              await syncReminders(db, settings).catch(() => undefined);
               router.back();
             } catch (archiveError) {
               Alert.alert(

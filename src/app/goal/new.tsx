@@ -2,7 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 
 import { AppText } from '@/components/app-text';
 import { ColorPicker } from '@/components/color-picker';
@@ -20,7 +28,10 @@ import { strings } from '@/i18n/strings';
 import { withAlpha } from '@/lib/color';
 import { formatAmount } from '@/lib/format';
 import { parseAmount } from '@/lib/numbers';
+import { normalizeReminderTime } from '@/lib/reminder-time';
+import { requestNotificationPermission, syncReminders } from '@/lib/reminders';
 import { notifyDataChanged } from '@/store/db';
+import { useSettingsStore } from '@/store/settings';
 import { radius, spacing, trackerPalette, useTheme } from '@/theme';
 
 const NEW_TRACKER_ID = '__new__';
@@ -35,6 +46,7 @@ export default function NewGoalScreen() {
   const theme = useTheme();
   const db = useSQLiteContext();
   const params = useLocalSearchParams<{ trackerId?: string }>();
+  const updateSettings = useSettingsStore((state) => state.update);
 
   const { data, loading } = useDbQuery(
     async (database) => {
@@ -54,6 +66,7 @@ export default function NewGoalScreen() {
   const [icon, setIcon] = useState('target');
   const [color, setColor] = useState<string>(trackerPalette[0]);
   const [defaultStep, setDefaultStep] = useState('1');
+  const [reminderTime, setReminderTime] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -121,6 +134,13 @@ export default function NewGoalScreen() {
       return;
     }
 
+    const reminderInput = reminderTime.trim();
+    const reminder = reminderInput ? normalizeReminderTime(reminderInput) : null;
+    if (reminderInput && !reminder) {
+      setError(strings.goalForm.reminderError);
+      return;
+    }
+
     let trackerId = currentId;
     let newTracker: { name: string; unit: string; step: number } | null = null;
 
@@ -162,12 +182,57 @@ export default function NewGoalScreen() {
             trackerId,
             period: entry.period,
             target: entry.target,
+            reminderTime: reminder,
             sortOrder: existingCount + index,
           });
         }
       });
 
       notifyDataChanged();
+
+      if (reminder) {
+        try {
+          const granted = await requestNotificationPermission();
+          if (!granted) {
+            Alert.alert(
+              strings.reminders.permissionTitle,
+              strings.reminders.permissionSavedBody,
+              [
+                {
+                  text: strings.common.notNow,
+                  style: 'cancel',
+                  onPress: () => router.back(),
+                },
+                {
+                  text: strings.common.openSettings,
+                  onPress: () => {
+                    void (async () => {
+                      await updateSettings({ notificationsEnabled: true }).catch(() => undefined);
+                      await Linking.openSettings().catch(() => undefined);
+                      router.back();
+                    })();
+                  },
+                },
+              ],
+            );
+            return;
+          }
+
+          const currentSettings = useSettingsStore.getState().settings;
+          if (!currentSettings.notificationsEnabled) {
+            await updateSettings({ notificationsEnabled: true });
+          }
+          await syncReminders(db, { ...currentSettings, notificationsEnabled: true });
+        } catch (reminderError) {
+          Alert.alert(
+            strings.reminders.scheduleError,
+            reminderError instanceof Error ? reminderError.message : String(reminderError),
+            [{ text: strings.common.close, onPress: () => router.back() }],
+          );
+          return;
+        }
+      }
+
       router.back();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : String(saveError));
@@ -365,6 +430,23 @@ export default function NewGoalScreen() {
                 );
               })}
             </View>
+          </View>
+
+          <View style={styles.section}>
+            <TextField
+              label={strings.goalForm.reminder}
+              value={reminderTime}
+              onChangeText={(value) => {
+                setReminderTime(value);
+                setError(null);
+              }}
+              placeholder={strings.goalForm.reminderPlaceholder}
+              keyboardType="numbers-and-punctuation"
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={5}
+              hint={strings.goalForm.reminderHint}
+            />
           </View>
 
           {error ? (

@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -101,6 +102,14 @@ export default function TodayScreen() {
 
   function handleLogged(result: LogSaveResult, unit: string) {
     const message = strings.today.logged(formatAmount(result.log.amount), unit);
+
+    if (settings.hapticsEnabled) {
+      if (result.completions.length > 0) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    }
 
     if (result.completions.length > 0) {
       setCelebrations(result.completions);

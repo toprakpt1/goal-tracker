@@ -1,5 +1,7 @@
 import { useColorScheme } from 'react-native';
 
+import { useSettingsStore } from '@/store/settings';
+
 export interface Theme {
   background: string;
   surface: string;
@@ -82,5 +84,7 @@ export const radius = {
 
 export function useTheme(): Theme {
   const scheme = useColorScheme();
-  return scheme === 'dark' ? darkTheme : lightTheme;
+  const preference = useSettingsStore((state) => state.settings.theme);
+  const resolved = preference === 'system' ? scheme : preference;
+  return resolved === 'dark' ? darkTheme : lightTheme;
 }

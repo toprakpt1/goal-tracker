@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
 import { EmptyState } from '@/components/empty-state';
@@ -18,7 +18,10 @@ import { strings } from '@/i18n/strings';
 import { withAlpha } from '@/lib/color';
 import { formatAmount } from '@/lib/format';
 import { parseAmount } from '@/lib/numbers';
+import { normalizeReminderTime } from '@/lib/reminder-time';
+import { requestNotificationPermission, syncReminders } from '@/lib/reminders';
 import { notifyDataChanged } from '@/store/db';
+import { useSettingsStore } from '@/store/settings';
 import { radius, spacing, useTheme } from '@/theme';
 
 interface EditGoalData {
@@ -67,9 +70,12 @@ export default function EditGoalScreen() {
 function GoalEditForm({ goal, goals }: EditGoalData) {
   const theme = useTheme();
   const db = useSQLiteContext();
+  const updateSettings = useSettingsStore((state) => state.update);
   const [period, setPeriod] = useState<Period>(goal.period);
   const [target, setTarget] = useState(String(goal.target));
+  const [reminderTime, setReminderTime] = useState(goal.reminderTime ?? '');
   const [error, setError] = useState<string | null>(null);
+  const [reminderError, setReminderError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const color = goal.tracker.color ?? theme.primary;
@@ -92,14 +98,72 @@ function GoalEditForm({ goal, goals }: EditGoalData) {
       return;
     }
 
+    const reminderInput = reminderTime.trim();
+    const reminder = reminderInput ? normalizeReminderTime(reminderInput) : null;
+    if (reminderInput && !reminder) {
+      setReminderError(strings.goalForm.reminderError);
+      return;
+    }
+
     setSaving(true);
     setError(null);
+    setReminderError(null);
+
     try {
-      await updateGoal(db, goal.id, { period, target: parsed });
-      notifyDataChanged();
-      router.back();
+      await updateGoal(db, goal.id, { period, target: parsed, reminderTime: reminder });
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : String(saveError));
+      setSaving(false);
+      return;
+    }
+
+    notifyDataChanged();
+
+    try {
+      const currentSettings = useSettingsStore.getState().settings;
+      const reminderChanged = reminder !== (goal.reminderTime ?? null);
+
+      if (reminder && reminderChanged && !currentSettings.notificationsEnabled) {
+        const granted = await requestNotificationPermission();
+        if (!granted) {
+          await syncReminders(db, currentSettings).catch(() => undefined);
+          Alert.alert(
+            strings.reminders.permissionTitle,
+            strings.reminders.permissionSavedBody,
+            [
+              {
+                text: strings.common.notNow,
+                style: 'cancel',
+                onPress: () => router.back(),
+              },
+              {
+                text: strings.common.openSettings,
+                onPress: () => {
+                  void (async () => {
+                    await updateSettings({ notificationsEnabled: true }).catch(() => undefined);
+                    await Linking.openSettings().catch(() => undefined);
+                    router.back();
+                  })();
+                },
+              },
+            ],
+          );
+          return;
+        }
+
+        await updateSettings({ notificationsEnabled: true });
+        await syncReminders(db, { ...currentSettings, notificationsEnabled: true });
+      } else {
+        await syncReminders(db, currentSettings);
+      }
+
+      router.back();
+    } catch (reminderError) {
+      Alert.alert(
+        strings.reminders.scheduleError,
+        reminderError instanceof Error ? reminderError.message : String(reminderError),
+        [{ text: strings.common.close, onPress: () => router.back() }],
+      );
     } finally {
       setSaving(false);
     }
@@ -145,6 +209,22 @@ function GoalEditForm({ goal, goals }: EditGoalData) {
         suffix={goal.tracker.unit}
         error={error}
         selectTextOnFocus
+      />
+
+      <TextField
+        label={strings.goalForm.reminder}
+        value={reminderTime}
+        onChangeText={(value) => {
+          setReminderTime(value);
+          setReminderError(null);
+        }}
+        placeholder={strings.goalForm.reminderPlaceholder}
+        keyboardType="numbers-and-punctuation"
+        autoCapitalize="none"
+        autoCorrect={false}
+        maxLength={5}
+        hint={strings.goalForm.reminderHint}
+        error={reminderError}
       />
 
       <PrimaryButton

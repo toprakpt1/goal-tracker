@@ -1,22 +1,7 @@
-import { useEffect, useState } from 'react';
+import type { Settings } from '@/db/settings';
+import { useSettingsStore } from '@/store/settings';
 
-import { DEFAULT_SETTINGS, loadSettings, type Settings } from '@/db/settings';
-
+/** The live settings object; changes propagate to every screen immediately. */
 export function useSettings(): Settings {
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-
-  useEffect(() => {
-    let active = true;
-    loadSettings().then((loaded) => {
-      if (active) {
-        setSettings(loaded);
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  return settings;
+  return useSettingsStore((state) => state.settings);
 }

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
@@ -10,9 +11,10 @@ interface SettingsRowProps {
   value?: string;
   danger?: boolean;
   onPress?: () => void;
+  right?: ReactNode;
 }
 
-export function SettingsRow({ label, hint, value, danger, onPress }: SettingsRowProps) {
+export function SettingsRow({ label, hint, value, danger, onPress, right }: SettingsRowProps) {
   const theme = useTheme();
   const labelColor = danger ? theme.danger : theme.text;
   const content = (
@@ -28,13 +30,15 @@ export function SettingsRow({ label, hint, value, danger, onPress }: SettingsRow
         ) : null}
       </View>
 
-      {value ? (
+      {right !== undefined ? (
+        right
+      ) : value ? (
         <AppText variant="body" color={theme.textMuted}>
           {value}
         </AppText>
       ) : null}
 
-      {onPress ? (
+      {onPress && right === undefined ? (
         <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
       ) : null}
     </>
