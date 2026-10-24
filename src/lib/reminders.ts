@@ -1,15 +1,15 @@
-import {
-  AndroidImportance,
-  IosAuthorizationStatus,
-  SchedulableTriggerInputTypes,
-} from 'expo-notifications';
-import * as Notifications from 'expo-notifications';
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { Platform } from 'react-native';
 
 import type { Settings } from '@/db/settings';
 import { listGoalsWithTracker } from '@/db/repositories/goals';
 import { strings } from '@/i18n/strings';
+import * as Notifications from '@/lib/notifications';
+import {
+  AndroidImportance,
+  IosAuthorizationStatus,
+  SchedulableTriggerInputTypes,
+} from '@/lib/notifications';
 import { parseReminderTime } from '@/lib/reminder-time';
 
 export const REMINDER_CHANNEL_ID = 'goal-reminders';

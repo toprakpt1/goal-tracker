@@ -1,5 +1,4 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider, router } from 'expo-router';
-import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { SQLiteProvider, useSQLiteContext, type SQLiteDatabase } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
@@ -10,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { migrate } from '@/db/migrations';
 import { DATABASE_NAME } from '@/db/schema';
+import * as Notifications from '@/lib/notifications';
 import {
   cancelAllReminders,
   hasNotificationPermission,
