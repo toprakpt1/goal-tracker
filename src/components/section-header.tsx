@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
+import { withAlpha } from '@/lib/color';
 import { useTheme, spacing } from '@/theme';
 
 interface SectionHeaderProps {
@@ -22,11 +23,11 @@ export function SectionHeader({ title, count, expanded, onToggle }: SectionHeade
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
       <View style={styles.titleRow}>
-        <AppText variant="heading" numberOfLines={1}>
+        <AppText variant="label" color={theme.textMuted}>
           {title}
         </AppText>
-        <View style={[styles.count, { backgroundColor: theme.surfaceMuted }]}>
-          <AppText variant="caption" color={theme.textMuted}>
+        <View style={[styles.count, { backgroundColor: withAlpha(theme.primary, 0.14) }]}>
+          <AppText variant="caption" color={theme.primary}>
             {count}
           </AppText>
         </View>
@@ -54,9 +55,9 @@ const styles = StyleSheet.create({
   },
   count: {
     minWidth: 24,
-    height: 24,
+    height: 22,
     paddingHorizontal: 7,
-    borderRadius: 12,
+    borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
   },

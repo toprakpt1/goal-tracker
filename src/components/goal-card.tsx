@@ -49,7 +49,7 @@ export function GoalCard({ goal, progress, onPress, onQuickAdd, onToggle }: Goal
       ]}
     >
       <View style={styles.header}>
-        <View style={[styles.iconChip, { backgroundColor: withAlpha(color, 0.14) }]}>
+        <View style={[styles.iconChip, { backgroundColor: withAlpha(color, 0.15) }]}>
           <TrackerIcon icon={goal.tracker.icon} size={21} color={color} />
         </View>
 
@@ -57,7 +57,7 @@ export function GoalCard({ goal, progress, onPress, onQuickAdd, onToggle }: Goal
           <AppText variant="bodyStrong" numberOfLines={1}>
             {goal.tracker.name}
           </AppText>
-          <AppText variant="caption" color={theme.textMuted}>
+          <AppText variant="caption" color={theme.textMuted} numberOfLines={1}>
             {strings.periods[goal.period]} ·{' '}
             {isCheck ? strings.check.checklist : goal.tracker.unit}
           </AppText>
@@ -66,10 +66,7 @@ export function GoalCard({ goal, progress, onPress, onQuickAdd, onToggle }: Goal
         {isCheck ? (
           <CheckToggle
             checked={progress.isComplete}
-            color={color}
-            label={
-              progress.isComplete ? strings.check.markUndone : strings.check.markDone
-            }
+            label={progress.isComplete ? strings.check.markUndone : strings.check.markDone}
             disabled={!onToggle}
             onPress={(event) => {
               event.stopPropagation();
@@ -78,8 +75,8 @@ export function GoalCard({ goal, progress, onPress, onQuickAdd, onToggle }: Goal
           />
         ) : progress.isComplete ? (
           <View style={[styles.doneBadge, { backgroundColor: withAlpha(theme.success, 0.14) }]}>
-            <Ionicons name="checkmark-circle" size={15} color={theme.success} />
-            <AppText variant="caption" color={theme.success} style={styles.doneText}>
+            <Ionicons name="checkmark" size={13} color={theme.success} />
+            <AppText variant="caption" color={theme.success}>
               {strings.today.done}
             </AppText>
           </View>
@@ -106,7 +103,7 @@ export function GoalCard({ goal, progress, onPress, onQuickAdd, onToggle }: Goal
         </View>
       ) : (
         <>
-          <ProgressBar ratio={progress.ratio} color={color} />
+          <ProgressBar ratio={progress.ratio} />
 
           <View style={styles.footer}>
             <AppText variant="number">
@@ -137,14 +134,14 @@ export function GoalCard({ goal, progress, onPress, onQuickAdd, onToggle }: Goal
                     formatAmount(goal.tracker.defaultStep),
                     goal.tracker.unit,
                   )}
-                  hitSlop={6}
+                  hitSlop={8}
                   style={({ pressed }) => [
                     styles.quickAdd,
-                    { backgroundColor: withAlpha(color, 0.14) },
+                    { backgroundColor: withAlpha(theme.primary, 0.16) },
                     pressed && styles.pressed,
                   ]}
                 >
-                  <Plus size={16} color={color} strokeWidth={2.5} />
+                  <Plus size={17} color={theme.primary} strokeWidth={2.5} />
                 </Pressable>
               ) : null}
             </View>
@@ -166,7 +163,7 @@ const styles = StyleSheet.create({
     opacity: 0.72,
   },
   pressed: {
-    opacity: 0.75,
+    opacity: 0.78,
   },
   header: {
     flexDirection: 'row',
@@ -192,9 +189,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: radius.pill,
   },
-  doneText: {
-    fontWeight: '600',
-  },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -213,9 +207,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   quickAdd: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
   },

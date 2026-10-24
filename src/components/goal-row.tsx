@@ -40,7 +40,7 @@ export function GoalRow({ goal, progress, onPress, onToggle }: GoalRowProps) {
       style={({ pressed }) => [styles.container, pressed && styles.pressed]}
     >
       <View style={styles.row}>
-        <View style={[styles.iconChip, { backgroundColor: withAlpha(color, 0.14) }]}>
+        <View style={[styles.iconChip, { backgroundColor: withAlpha(color, 0.15) }]}>
           <TrackerIcon icon={goal.tracker.icon} size={15} color={color} />
         </View>
 
@@ -48,7 +48,7 @@ export function GoalRow({ goal, progress, onPress, onToggle }: GoalRowProps) {
           <AppText variant="bodyStrong" numberOfLines={1}>
             {goal.tracker.name}
           </AppText>
-          <AppText variant="caption" color={theme.textMuted}>
+          <AppText variant="caption" color={theme.textMuted} numberOfLines={1}>
             {isCheck
               ? `${strings.periods[goal.period]} · ${
                   progress.isComplete ? strings.check.done : strings.check.notDone
@@ -62,11 +62,8 @@ export function GoalRow({ goal, progress, onPress, onToggle }: GoalRowProps) {
         {isCheck ? (
           <CheckToggle
             checked={progress.isComplete}
-            color={color}
             size={30}
-            label={
-              progress.isComplete ? strings.check.markUndone : strings.check.markDone
-            }
+            label={progress.isComplete ? strings.check.markUndone : strings.check.markDone}
             disabled={!onToggle}
             onPress={(event) => {
               event.stopPropagation();
@@ -82,7 +79,7 @@ export function GoalRow({ goal, progress, onPress, onToggle }: GoalRowProps) {
         )}
       </View>
 
-      {isCheck ? null : <ProgressBar ratio={progress.ratio} color={color} height={5} />}
+      {isCheck ? null : <ProgressBar ratio={progress.ratio} height={5} />}
     </Pressable>
   );
 }
@@ -91,6 +88,8 @@ const styles = StyleSheet.create({
   container: {
     gap: spacing.sm,
     paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.sm,
   },
   pressed: {
     opacity: 0.65,
@@ -101,8 +100,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   iconChip: {
-    width: 30,
-    height: 30,
+    width: 32,
+    height: 32,
     borderRadius: radius.sm,
     alignItems: 'center',
     justifyContent: 'center',

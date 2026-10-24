@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import * as Haptics from 'expo-haptics';
@@ -12,6 +13,8 @@ import { EmptyState } from '@/components/empty-state';
 import { GoalCard } from '@/components/goal-card';
 import { GoalRow } from '@/components/goal-row';
 import { LogSheet } from '@/components/log-sheet';
+import { ProgressBar } from '@/components/progress-bar';
+import { ProgressRing } from '@/components/progress-ring';
 import { Screen } from '@/components/screen';
 import { SectionHeader } from '@/components/section-header';
 import { UndoToast } from '@/components/undo-toast';
@@ -30,8 +33,9 @@ import { useSettings } from '@/hooks/use-settings';
 import { useToday } from '@/hooks/use-today';
 import { strings } from '@/i18n/strings';
 import { formatAmount, formatDateHeading, greetingFor } from '@/lib/format';
+import { withAlpha } from '@/lib/color';
 import { notifyDataChanged } from '@/store/db';
-import { radius, spacing, useTheme } from '@/theme';
+import { darkTheme, gradients, radius, spacing, useTheme } from '@/theme';
 
 const SECTION_PERIODS: Period[] = ['weekly', 'monthly', 'yearly'];
 const UNDO_TIMEOUT_MS = 5000;
@@ -218,19 +222,28 @@ export default function TodayScreen() {
     }
   }
 
-  const hasGoals = (data?.goals.length ?? 0) > 0;
+  const allGoals = data?.goals ?? [];
+  const completedCount = allGoals.filter((goal) => progressFor(goal).isComplete).length;
+  const momentum = allGoals.length === 0 ? 0 : completedCount / allGoals.length;
+  const hasGoals = allGoals.length > 0;
   const dailyGoals = goalsByPeriod.daily;
   const logProgress = logGoal ? progressFor(logGoal) : null;
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
-      <Screen>
+      <Screen contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <View style={styles.headerText}>
-            <AppText variant="caption" color={theme.textMuted}>
-              {greetingFor(today)}
+            <AppText variant="label" color={theme.textMuted}>
+              {formatDateHeading(today)}
             </AppText>
-            <AppText variant="display">{formatDateHeading(today)}</AppText>
+            <AppText variant="hero">{greetingFor(today)}</AppText>
+            <View style={styles.streakChip}>
+              <Ionicons name="flame" size={14} color={theme.primary} />
+              <AppText variant="caption" color={theme.primary}>
+                {strings.today.doneCount(completedCount)}
+              </AppText>
+            </View>
           </View>
 
           <Pressable
@@ -240,7 +253,7 @@ export default function TodayScreen() {
             hitSlop={10}
             style={({ pressed }) => [
               styles.iconButton,
-              { backgroundColor: theme.surface, borderColor: theme.border },
+              { backgroundColor: theme.surfaceMuted, borderColor: theme.border },
               pressed && styles.pressed,
             ]}
           >
@@ -268,32 +281,68 @@ export default function TodayScreen() {
           />
         ) : (
           <>
-            <View style={styles.section}>
-              <View style={styles.titleRow}>
-                <AppText variant="heading">{strings.today.title}</AppText>
-                <AppText variant="caption" color={theme.textMuted}>
-                  {dailyGoals.length}
-                </AppText>
+            <View
+              style={[
+                styles.hero,
+                { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
+              ]}
+            >
+              <LinearGradient
+                pointerEvents="none"
+                colors={gradients.hero}
+                start={{ x: 1, y: 0 }}
+                end={{ x: 0.1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.heroRow}>
+                <View style={styles.heroText}>
+                  <AppText variant="label" color={theme.textMuted}>
+                    {strings.today.momentum}
+                  </AppText>
+                  <AppText variant="hero">{Math.round(momentum * 100)}%</AppText>
+                  <AppText variant="caption" color={theme.textMuted}>
+                    {strings.today.momentumSub(completedCount, allGoals.length)}
+                  </AppText>
+                </View>
+
+                <ProgressRing ratio={momentum} size={86} strokeWidth={8}>
+                  <Ionicons name="flame" size={26} color={theme.primary} />
+                </ProgressRing>
               </View>
 
-              {dailyGoals.length === 0 ? (
-                <AppText variant="body" color={theme.textMuted}>
-                  {strings.goals.emptyBody}
-                </AppText>
-              ) : (
-                <View style={styles.cards}>
-                  {dailyGoals.map((goal) => (
-                    <GoalCard
-                      key={goal.id}
-                      goal={goal}
-                      progress={progressFor(goal)}
-                      onPress={() => openGoal(goal)}
-                      onQuickAdd={() => void handleQuickAdd(goal)}
-                      onToggle={() => void handleCheckToggle(goal)}
-                    />
-                  ))}
-                </View>
-              )}
+              <ProgressBar ratio={momentum} height={6} />
+            </View>
+
+            <View style={styles.section}>
+              <SectionHeader
+                title={strings.today.title}
+                count={dailyGoals.length}
+                expanded={expanded.daily}
+                onToggle={() =>
+                  setExpanded((current) => ({ ...current, daily: !current.daily }))
+                }
+              />
+
+              {expanded.daily ? (
+                dailyGoals.length === 0 ? (
+                  <AppText variant="body" color={theme.textMuted}>
+                    {strings.goals.emptyBody}
+                  </AppText>
+                ) : (
+                  <View style={styles.cards}>
+                    {dailyGoals.map((goal) => (
+                      <GoalCard
+                        key={goal.id}
+                        goal={goal}
+                        progress={progressFor(goal)}
+                        onPress={() => openGoal(goal)}
+                        onQuickAdd={() => void handleQuickAdd(goal)}
+                        onToggle={() => void handleCheckToggle(goal)}
+                      />
+                    ))}
+                  </View>
+                )
+              ) : null}
             </View>
 
             {SECTION_PERIODS.map((period) => {
@@ -383,6 +432,9 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
+  content: {
+    gap: spacing.xl,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -392,6 +444,17 @@ const styles = StyleSheet.create({
   headerText: {
     flex: 1,
     gap: spacing.xs,
+  },
+  streakChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: withAlpha(darkTheme.primary, 0.12),
   },
   iconButton: {
     width: 42,
@@ -408,14 +471,25 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xxxl,
     alignItems: 'center',
   },
-  section: {
-    gap: spacing.sm,
+  hero: {
+    borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: spacing.lg,
+    gap: spacing.md,
+    overflow: 'hidden',
   },
-  titleRow: {
+  heroRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.lg,
+  },
+  heroText: {
+    flex: 1,
+    gap: 2,
+  },
+  section: {
     gap: spacing.sm,
-    paddingVertical: spacing.sm,
   },
   cards: {
     gap: spacing.md,
@@ -423,7 +497,7 @@ const styles = StyleSheet.create({
   sectionCard: {
     borderRadius: radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
   divider: {
     height: StyleSheet.hairlineWidth,

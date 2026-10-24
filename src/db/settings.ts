@@ -18,7 +18,7 @@ export const DEFAULT_SETTINGS: Settings = {
   soundEnabled: true,
   hapticsEnabled: true,
   notificationsEnabled: false,
-  theme: 'system',
+  theme: 'dark',
   onboardingComplete: false,
 };
 

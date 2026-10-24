@@ -7,6 +7,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/app-text';
 import { EmptyState } from '@/components/empty-state';
 import { Screen } from '@/components/screen';
+import { StatTile } from '@/components/stat-tile';
 import { TrackerIcon } from '@/components/tracker-icon';
 import { loadStats, type GoalStreak } from '@/db/stats';
 import type { Tracker } from '@/domain/types';
@@ -49,7 +50,7 @@ export default function StatsScreen() {
   }, [data]);
 
   return (
-    <Screen>
+    <Screen contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <AppText variant="display">{strings.stats.title}</AppText>
         <AppText variant="body" color={theme.textMuted}>
@@ -77,25 +78,25 @@ export default function StatsScreen() {
         />
       ) : (
         <>
-          <View
-            style={[
-              styles.summaryCard,
-              { backgroundColor: theme.surface, borderColor: theme.border },
-            ]}
-          >
-            <View style={styles.summaryItem}>
-              <AppText variant="caption" color={theme.textMuted}>
-                {strings.stats.activeStreaks}
-              </AppText>
-              <AppText style={styles.summaryValue}>{data?.activeStreaks ?? 0}</AppText>
-            </View>
-            <View style={[styles.summaryDivider, { backgroundColor: theme.border }]} />
-            <View style={styles.summaryItem}>
-              <AppText variant="caption" color={theme.textMuted}>
-                {strings.stats.trackedGoals}
-              </AppText>
-              <AppText style={styles.summaryValue}>{data?.goals.length ?? 0}</AppText>
-            </View>
+          <View style={styles.statRow}>
+            <StatTile
+              label={strings.stats.activeStreaks}
+              value={data?.activeStreaks ?? 0}
+              accent={theme.primary}
+              icon={<Ionicons name="flame" size={17} color={theme.primary} />}
+            />
+            <StatTile
+              label={strings.stats.trackedGoals}
+              value={data?.goals.length ?? 0}
+              accent={theme.secondary}
+              icon={<Ionicons name="flag" size={16} color={theme.secondary} />}
+            />
+            <StatTile
+              label={strings.stats.completedLabel}
+              value={(data?.goals ?? []).reduce((sum, row) => sum + row.total, 0)}
+              accent={theme.success}
+              icon={<Ionicons name="checkmark" size={18} color={theme.success} />}
+            />
           </View>
 
           <View style={styles.groups}>
@@ -177,6 +178,9 @@ export default function StatsScreen() {
 }
 
 const styles = StyleSheet.create({
+  content: {
+    gap: spacing.xl,
+  },
   header: {
     gap: 4,
   },
@@ -187,29 +191,9 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.7,
   },
-  summaryCard: {
+  statRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-    borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.lg,
-  },
-  summaryItem: {
-    flex: 1,
-    gap: 2,
-  },
-  summaryValue: {
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  summaryDivider: {
-    width: StyleSheet.hairlineWidth,
-    alignSelf: 'stretch',
-    marginHorizontal: spacing.lg,
+    gap: spacing.sm,
   },
   groups: {
     gap: spacing.md,

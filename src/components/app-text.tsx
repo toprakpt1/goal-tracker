@@ -1,10 +1,12 @@
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { useTheme } from '@/theme';
+import { fontFamily, useTheme } from '@/theme';
 
 export type TextVariant =
+  | 'hero'
   | 'display'
   | 'title'
+  | 'metric'
   | 'heading'
   | 'body'
   | 'bodyStrong'
@@ -25,54 +27,67 @@ export function AppText({ variant = 'body', color, style, ...rest }: AppTextProp
 }
 
 const styles = StyleSheet.create({
+  hero: {
+    fontFamily: fontFamily.display,
+    fontSize: 38,
+    lineHeight: 46,
+    letterSpacing: -1,
+  },
   display: {
-    fontSize: 30,
-    lineHeight: 36,
-    fontWeight: '700',
-    letterSpacing: -0.6,
+    fontFamily: fontFamily.display,
+    fontSize: 32,
+    lineHeight: 40,
+    letterSpacing: -0.8,
   },
   title: {
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '700',
-    letterSpacing: -0.4,
+    fontFamily: fontFamily.display,
+    fontSize: 26,
+    lineHeight: 32,
+    letterSpacing: -0.5,
+  },
+  metric: {
+    fontFamily: fontFamily.display,
+    fontSize: 28,
+    lineHeight: 34,
+    letterSpacing: -0.6,
   },
   heading: {
+    fontFamily: fontFamily.sansSemiBold,
     fontSize: 17,
     lineHeight: 22,
-    fontWeight: '700',
     letterSpacing: -0.2,
   },
   body: {
+    fontFamily: fontFamily.sans,
     fontSize: 15,
     lineHeight: 21,
-    fontWeight: '400',
   },
   bodyStrong: {
+    fontFamily: fontFamily.sansSemiBold,
     fontSize: 15,
     lineHeight: 21,
-    fontWeight: '600',
   },
   caption: {
+    fontFamily: fontFamily.sans,
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '400',
   },
   label: {
+    fontFamily: fontFamily.sansBold,
     fontSize: 11,
     lineHeight: 14,
-    fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 0.9,
     textTransform: 'uppercase',
   },
   number: {
+    fontFamily: fontFamily.sansBold,
     fontSize: 15,
     lineHeight: 21,
-    fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
   tab: {
+    fontFamily: fontFamily.sansSemiBold,
     fontSize: 11,
-    fontWeight: '600',
+    lineHeight: 14,
   },
 });

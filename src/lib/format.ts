@@ -9,7 +9,7 @@ export function formatAmount(value: number): string {
 }
 
 export function formatDateHeading(date: Date): string {
-  return format(date, 'EEEE, d MMMM');
+  return format(date, 'EEE · d MMM');
 }
 
 export function formatProgressLine(total: number, target: number, unit: string): string {

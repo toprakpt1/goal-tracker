@@ -17,6 +17,7 @@ import type { Goal, Tracker } from '@/domain/types';
 import { useDbQuery } from '@/hooks/use-db-query';
 import { useSettings } from '@/hooks/use-settings';
 import { strings } from '@/i18n/strings';
+import { withAlpha } from '@/lib/color';
 import { parseAmount } from '@/lib/numbers';
 import { syncReminders } from '@/lib/reminders';
 import { notifyDataChanged } from '@/store/db';
@@ -45,7 +46,7 @@ export default function EditTrackerScreen() {
   );
 
   return (
-    <Screen>
+    <Screen contentContainerStyle={styles.content}>
       <PageHeader title={strings.trackerForm.editTitle} onBack={() => router.back()} />
 
       {loading && !data ? (
@@ -233,7 +234,14 @@ function TrackerEditForm({ tracker, goals }: TrackerData) {
       <Pressable
         onPress={confirmArchive}
         accessibilityRole="button"
-        style={({ pressed }) => [styles.archive, pressed && styles.pressed]}
+        style={({ pressed }) => [
+          styles.archive,
+          {
+            backgroundColor: withAlpha(theme.danger, 0.08),
+            borderColor: withAlpha(theme.danger, 0.28),
+          },
+          pressed && styles.pressed,
+        ]}
       >
         <AppText variant="bodyStrong" color={theme.danger}>
           {strings.trackerForm.archive}
@@ -244,6 +252,9 @@ function TrackerEditForm({ tracker, goals }: TrackerData) {
 }
 
 const styles = StyleSheet.create({
+  content: {
+    gap: spacing.lg,
+  },
   center: {
     paddingVertical: spacing.xxxl,
     alignItems: 'center',
@@ -260,8 +271,11 @@ const styles = StyleSheet.create({
   },
   archive: {
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
     paddingVertical: spacing.md,
     borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   pressed: {
     opacity: 0.65,

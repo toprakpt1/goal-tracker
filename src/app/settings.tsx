@@ -18,7 +18,7 @@ import { AppText } from '@/components/app-text';
 import { OptionSheet, type OptionSheetOption } from '@/components/option-sheet';
 import { Screen } from '@/components/screen';
 import { SettingsRow } from '@/components/settings-row';
-import type { Settings, ThemePreference } from '@/db/settings';
+import type { Settings } from '@/db/settings';
 import { deleteAllData, seedDemoData } from '@/db/seed';
 import { useSettings } from '@/hooks/use-settings';
 import { strings } from '@/i18n/strings';
@@ -32,17 +32,11 @@ import { useSettingsStore } from '@/store/settings';
 import { radius, spacing, useTheme } from '@/theme';
 
 type WeekStartValue = '0' | '1';
-type SettingsSheet = 'weekStart' | 'theme' | null;
+type SettingsSheet = 'weekStart' | null;
 
 const WEEK_START_OPTIONS: readonly OptionSheetOption<WeekStartValue>[] = [
   { value: '1', label: strings.settings.monday },
   { value: '0', label: strings.settings.sunday },
-];
-
-const THEME_OPTIONS: readonly OptionSheetOption<ThemePreference>[] = [
-  { value: 'system', label: strings.settings.system },
-  { value: 'light', label: strings.settings.light },
-  { value: 'dark', label: strings.settings.dark },
 ];
 
 export default function SettingsScreen() {
@@ -172,16 +166,10 @@ export default function SettingsScreen() {
   const weekStartValue: WeekStartValue = settings.weekStartsOn === 0 ? '0' : '1';
   const weekStartLabel =
     weekStartValue === '0' ? strings.settings.sunday : strings.settings.monday;
-  const themeLabel =
-    settings.theme === 'system'
-      ? strings.settings.system
-      : settings.theme === 'light'
-        ? strings.settings.light
-        : strings.settings.dark;
 
   return (
     <>
-      <Screen>
+      <Screen contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <AppText variant="display">{strings.settings.title}</AppText>
           <Pressable
@@ -191,7 +179,7 @@ export default function SettingsScreen() {
             hitSlop={10}
             style={({ pressed }) => [
               styles.iconButton,
-              { backgroundColor: theme.surface, borderColor: theme.border },
+              { backgroundColor: theme.surfaceMuted, borderColor: theme.border },
               pressed && styles.pressed,
             ]}
           >
@@ -208,9 +196,8 @@ export default function SettingsScreen() {
             />
             <Divider />
             <SettingsRow
-              label={strings.settings.theme}
-              value={themeLabel}
-              onPress={() => setSheet('theme')}
+              label={strings.settings.appearance}
+              value={strings.settings.appearanceValue}
             />
             <Divider />
             <SettingsRow
@@ -223,7 +210,7 @@ export default function SettingsScreen() {
                   accessibilityLabel={strings.settings.notifications}
                   disabled={remindersBusy}
                   trackColor={{ false: theme.border, true: theme.primary }}
-                  thumbColor="#FFFFFF"
+                  thumbColor="#F6EDE3"
                   ios_backgroundColor={theme.border}
                 />
               }
@@ -238,7 +225,7 @@ export default function SettingsScreen() {
                   onValueChange={(value) => void handleHapticsChange(value)}
                   accessibilityLabel={strings.settings.haptics}
                   trackColor={{ false: theme.border, true: theme.primary }}
-                  thumbColor="#FFFFFF"
+                  thumbColor="#F6EDE3"
                   ios_backgroundColor={theme.border}
                 />
               }
@@ -297,15 +284,6 @@ export default function SettingsScreen() {
         onSelect={(value) => saveSettings({ weekStartsOn: value === '0' ? 0 : 1 })}
         onClose={() => setSheet(null)}
       />
-
-      <OptionSheet
-        visible={sheet === 'theme'}
-        title={strings.settings.theme}
-        value={settings.theme}
-        options={THEME_OPTIONS}
-        onSelect={(value) => saveSettings({ theme: value })}
-        onClose={() => setSheet(null)}
-      />
     </>
   );
 }
@@ -331,6 +309,9 @@ function Divider() {
 }
 
 const styles = StyleSheet.create({
+  content: {
+    gap: spacing.xl,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -349,7 +330,6 @@ const styles = StyleSheet.create({
   },
   sections: {
     gap: spacing.xl,
-    marginTop: spacing.md,
   },
   section: {
     gap: spacing.sm,

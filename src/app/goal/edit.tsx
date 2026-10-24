@@ -47,7 +47,7 @@ export default function EditGoalScreen() {
   );
 
   return (
-    <Screen>
+    <Screen contentContainerStyle={styles.content}>
       <PageHeader title={strings.goalForm.editTitle} onBack={() => router.back()} />
 
       {loading && !data ? (
@@ -175,7 +175,7 @@ function GoalEditForm({ goal, goals }: EditGoalData) {
       <View
         style={[
           styles.trackerCard,
-          { backgroundColor: theme.surface, borderColor: theme.border },
+          { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
         ]}
       >
         <View style={[styles.iconChip, { backgroundColor: withAlpha(color, 0.14) }]}>
@@ -254,6 +254,9 @@ function GoalEditForm({ goal, goals }: EditGoalData) {
 }
 
 const styles = StyleSheet.create({
+  content: {
+    gap: spacing.lg,
+  },
   center: {
     paddingVertical: spacing.xxxl,
     alignItems: 'center',

@@ -29,7 +29,7 @@ export function PrimaryButton({
       ? theme.primary
       : variant === 'danger'
         ? 'transparent'
-        : theme.surface;
+        : theme.surfaceMuted;
   const borderColor =
     variant === 'primary' ? theme.primary : variant === 'danger' ? theme.danger : theme.border;
   const textColor =
@@ -64,7 +64,7 @@ export function PrimaryButton({
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: 50,
+    minHeight: 52,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
@@ -77,9 +77,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   disabled: {
-    opacity: 0.45,
+    opacity: 0.4,
   },
   pressed: {
-    opacity: 0.8,
+    opacity: 0.82,
   },
 });

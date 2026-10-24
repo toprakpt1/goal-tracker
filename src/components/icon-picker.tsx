@@ -28,7 +28,7 @@ export function IconPicker({ value, color, onChange }: IconPickerProps) {
               styles.cell,
               {
                 borderColor: selected ? color : theme.border,
-                backgroundColor: selected ? withAlpha(color, 0.16) : theme.surface,
+                backgroundColor: selected ? withAlpha(color, 0.16) : theme.surfaceMuted,
               },
               pressed && styles.pressed,
             ]}

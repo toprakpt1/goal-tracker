@@ -110,7 +110,8 @@ export function LogSheet({
             style={[
               styles.sheet,
               {
-                backgroundColor: theme.background,
+                backgroundColor: theme.surfaceElevated,
+                borderColor: theme.border,
                 paddingBottom: insets.bottom + spacing.lg,
               },
             ]}
@@ -181,13 +182,13 @@ export function LogSheet({
                   style={({ pressed }) => [
                     styles.quickChip,
                     {
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
+                      backgroundColor: withAlpha(theme.primary, 0.12),
+                      borderColor: withAlpha(theme.primary, 0.3),
                     },
                     pressed && styles.pressed,
                   ]}
                 >
-                  <AppText variant="bodyStrong" color={theme.textMuted}>
+                  <AppText variant="bodyStrong" color={theme.primary}>
                     {formatAmount(value)}
                   </AppText>
                 </Pressable>
@@ -233,6 +234,7 @@ const styles = StyleSheet.create({
   sheet: {
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
+    borderTopWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
     gap: spacing.md,

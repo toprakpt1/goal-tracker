@@ -57,20 +57,20 @@ export function SegmentedControl<T extends string>({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    borderRadius: radius.md,
+    borderRadius: radius.pill,
     padding: 3,
     gap: 3,
   },
   segment: {
     flex: 1,
     minHeight: 38,
-    borderRadius: radius.sm,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.xs,
   },
   disabled: {
-    opacity: 0.4,
+    opacity: 0.35,
   },
   pressed: {
     opacity: 0.7,

@@ -303,7 +303,7 @@ export default function NewGoalScreen() {
   }
 
   return (
-    <Screen>
+    <Screen contentContainerStyle={styles.content}>
       <PageHeader title={strings.goalForm.newTitle} onBack={() => router.back()} />
 
       {loading && !data ? (
@@ -385,7 +385,7 @@ export default function NewGoalScreen() {
             <View
               style={[
                 styles.card,
-                { backgroundColor: theme.surface, borderColor: theme.border },
+                { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
               ]}
             >
               <View style={styles.pickerBlock}>
@@ -574,6 +574,9 @@ export default function NewGoalScreen() {
 }
 
 const styles = StyleSheet.create({
+  content: {
+    gap: spacing.lg,
+  },
   center: {
     paddingVertical: spacing.xxxl,
     alignItems: 'center',
@@ -586,9 +589,9 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   trackerOption: {
-    width: 96,
-    minHeight: 78,
-    borderRadius: radius.md,
+    width: 100,
+    minHeight: 84,
+    borderRadius: radius.lg,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

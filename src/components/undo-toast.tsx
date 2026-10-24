@@ -20,8 +20,8 @@ export function UndoToast({ visible, message, onUndo, style }: UndoToastProps) {
 
   return (
     <View pointerEvents="box-none" style={[styles.wrap, style]}>
-      <View style={[styles.toast, { backgroundColor: theme.text }]}>
-        <AppText variant="bodyStrong" color={theme.background} style={styles.message} numberOfLines={2}>
+      <View style={[styles.toast, { backgroundColor: theme.surfaceElevated, borderColor: theme.border }]}>
+        <AppText variant="bodyStrong" style={styles.message} numberOfLines={2}>
           {message}
         </AppText>
         <Pressable
@@ -30,7 +30,7 @@ export function UndoToast({ visible, message, onUndo, style }: UndoToastProps) {
           hitSlop={8}
           style={({ pressed }) => [styles.action, pressed && styles.pressed]}
         >
-          <AppText variant="bodyStrong" color={theme.background} style={styles.actionText}>
+          <AppText variant="bodyStrong" color={theme.primary} style={styles.actionText}>
             {strings.common.undo}
           </AppText>
         </Pressable>
@@ -51,13 +51,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     shadowColor: '#000000',
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
   message: {
     flex: 1,

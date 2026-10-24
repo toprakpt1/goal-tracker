@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
+import { withAlpha } from '@/lib/color';
 import { radius, spacing, useTheme } from '@/theme';
 
 interface EmptyStateProps {
@@ -17,10 +18,10 @@ export function EmptyState({ icon, title, body, actionLabel, onAction }: EmptySt
 
   return (
     <View style={[styles.container, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      <View style={[styles.iconWrap, { backgroundColor: theme.surfaceMuted }]}>
-        <Ionicons name={icon} size={26} color={theme.primary} />
+      <View style={[styles.iconWrap, { backgroundColor: withAlpha(theme.primary, 0.14) }]}>
+        <Ionicons name={icon} size={28} color={theme.primary} />
       </View>
-      <AppText variant="heading" style={styles.center}>
+      <AppText variant="title" style={styles.center}>
         {title}
       </AppText>
       <AppText variant="body" color={theme.textMuted} style={styles.center}>
@@ -55,9 +56,9 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   iconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.xs,
@@ -72,6 +73,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
   },
   pressed: {
-    opacity: 0.8,
+    opacity: 0.82,
   },
 });

@@ -1,4 +1,15 @@
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider, router } from 'expo-router';
+import {
+  Domine_400Regular,
+  Domine_600SemiBold,
+} from '@expo-google-fonts/domine';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from '@expo-google-fonts/inter';
+import { DarkTheme, Stack, ThemeProvider, router } from 'expo-router';
+import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { SQLiteProvider, useSQLiteContext, type SQLiteDatabase } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
@@ -78,6 +89,19 @@ function useNotificationObserver() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    Domine_400Regular,
+    Domine_600SemiBold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
@@ -92,7 +116,6 @@ export default function RootLayout() {
 function AppShell() {
   const theme = useTheme();
   const db = useSQLiteContext();
-  const base = theme.isDark ? DarkTheme : DefaultTheme;
 
   useNotificationObserver();
 
@@ -132,20 +155,21 @@ function AppShell() {
   }, [db]);
 
   const navigationTheme = {
-    ...base,
+    ...DarkTheme,
     colors: {
-      ...base.colors,
+      ...DarkTheme.colors,
       background: theme.background,
-      card: theme.surface,
+      card: theme.surfaceElevated,
       text: theme.text,
       border: theme.border,
       primary: theme.primary,
+      notification: theme.secondary,
     },
   };
 
   return (
     <ThemeProvider value={navigationTheme}>
-      <StatusBar style={theme.isDark ? 'light' : 'dark'} />
+      <StatusBar style="light" />
       <Stack
         screenOptions={{
           headerShown: false,

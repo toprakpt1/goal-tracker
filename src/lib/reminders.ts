@@ -25,7 +25,7 @@ export async function ensureNotificationChannel(): Promise<void> {
     importance: AndroidImportance.DEFAULT,
     sound: 'default',
     vibrationPattern: [0, 200, 120, 200],
-    lightColor: '#6C4CF1',
+    lightColor: '#F5A524',
   });
 }
 

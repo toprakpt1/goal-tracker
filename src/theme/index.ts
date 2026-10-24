@@ -1,16 +1,14 @@
-import { useColorScheme } from 'react-native';
-
-import { useSettingsStore } from '@/store/settings';
-
 export interface Theme {
   background: string;
   surface: string;
   surfaceMuted: string;
+  surfaceElevated: string;
   text: string;
   textMuted: string;
   border: string;
   primary: string;
   onPrimary: string;
+  secondary: string;
   success: string;
   warning: string;
   danger: string;
@@ -19,49 +17,55 @@ export interface Theme {
   isDark: boolean;
 }
 
-export const lightTheme: Theme = {
-  background: '#F6F5FB',
-  surface: '#FFFFFF',
-  surfaceMuted: '#EEEBF7',
-  text: '#17151F',
-  textMuted: '#6E6A7C',
-  border: '#E4E1EE',
-  primary: '#6C4CF1',
-  onPrimary: '#FFFFFF',
-  success: '#0E9F6E',
-  warning: '#D97706',
-  danger: '#DC2626',
-  track: '#E9E6F4',
-  overlay: 'rgba(23, 21, 31, 0.45)',
-  isDark: false,
-};
-
+/**
+ * Ember, the warm dark palette. Goal Tracker ships with a single appearance so
+ * the amber light and cream type always land on the same roasted neutrals.
+ */
 export const darkTheme: Theme = {
-  background: '#0D0C12',
-  surface: '#17151F',
-  surfaceMuted: '#211E2D',
-  text: '#F5F3FA',
-  textMuted: '#9C97AD',
-  border: '#2B2737',
-  primary: '#8B6CFF',
-  onPrimary: '#FFFFFF',
-  success: '#2DD4A0',
-  warning: '#FBBF24',
+  background: '#120E0B',
+  surface: '#1C1612',
+  surfaceMuted: '#251D17',
+  surfaceElevated: '#2B211A',
+  text: '#F6EDE3',
+  textMuted: '#B3A192',
+  border: '#352A21',
+  primary: '#F5A524',
+  onPrimary: '#241505',
+  secondary: '#FF7A59',
+  success: '#5AD18A',
+  warning: '#F5A524',
   danger: '#FF6B6B',
-  track: '#2B2737',
-  overlay: 'rgba(0, 0, 0, 0.62)',
+  track: '#2E241C',
+  overlay: 'rgba(10, 7, 5, 0.72)',
   isDark: true,
 };
 
+export const gradients = {
+  ember: ['#F5A524', '#FF7A59'] as const,
+  emberDown: ['#FF7A59', '#F5A524'] as const,
+  glow: ['rgba(245, 165, 36, 0.14)', 'rgba(18, 14, 11, 0)'] as const,
+  hero: ['rgba(245, 165, 36, 0.16)', 'rgba(43, 33, 26, 0)'] as const,
+};
+
+export const fontFamily = {
+  display: 'Domine_600SemiBold',
+  displayRegular: 'Domine_400Regular',
+  sans: 'Inter_400Regular',
+  sansMedium: 'Inter_500Medium',
+  sansSemiBold: 'Inter_600SemiBold',
+  sansBold: 'Inter_700Bold',
+} as const;
+
+/** Warm tracker palette: amber, coral, rose, olive, teal-green. No blue or purple. */
 export const trackerPalette = [
-  '#6C4CF1',
-  '#2F80ED',
-  '#0FA3A3',
-  '#0E9F6E',
-  '#D97706',
-  '#F25C54',
-  '#D63AF9',
-  '#E0457B',
+  '#F5A524',
+  '#FF8A3D',
+  '#FF7A59',
+  '#E8573F',
+  '#D9467A',
+  '#A3E635',
+  '#5AD18A',
+  '#2DD4BF',
 ] as const;
 
 export const spacing = {
@@ -72,19 +76,19 @@ export const spacing = {
   xl: 20,
   xxl: 24,
   xxxl: 32,
+  huge: 40,
 } as const;
 
 export const radius = {
   sm: 10,
   md: 14,
-  lg: 20,
-  xl: 28,
+  lg: 18,
+  xl: 24,
   pill: 999,
 } as const;
 
 export function useTheme(): Theme {
-  const scheme = useColorScheme();
-  const preference = useSettingsStore((state) => state.settings.theme);
-  const resolved = preference === 'system' ? scheme : preference;
-  return resolved === 'dark' ? darkTheme : lightTheme;
+  // Kept as a hook so screens stay ready for a future light mode, but Ember is
+  // intentionally dark-only and ignores the system scheme.
+  return darkTheme;
 }

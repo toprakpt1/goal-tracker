@@ -258,7 +258,7 @@ export default function GoalDetailScreen() {
       hitSlop={8}
       style={({ pressed }) => [
         styles.iconButton,
-        { backgroundColor: theme.surface, borderColor: theme.border },
+        { backgroundColor: theme.surfaceMuted, borderColor: theme.border },
         pressed && styles.pressed,
       ]}
     >
@@ -268,7 +268,7 @@ export default function GoalDetailScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
-      <Screen>
+      <Screen contentContainerStyle={styles.content}>
         <PageHeader
           title={goal?.tracker.name ?? strings.goalDetail.progress}
           subtitle={goal ? strings.periods[goal.period] : undefined}
@@ -291,7 +291,7 @@ export default function GoalDetailScreen() {
             <View
               style={[
                 styles.summaryCard,
-                { backgroundColor: theme.surface, borderColor: theme.border },
+                { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
               ]}
             >
               <View style={styles.summaryHeader}>
@@ -303,12 +303,12 @@ export default function GoalDetailScreen() {
                     {isCheck ? strings.check.status : strings.goalDetail.progress}
                   </AppText>
                   {isCheck ? (
-                    <AppText style={styles.checkStatus}>
+                    <AppText variant="title">
                       {progress.isComplete ? strings.check.done : strings.check.notDone}
                     </AppText>
                   ) : (
                     <View style={styles.amountRow}>
-                      <AppText style={styles.amount}>{formatAmount(progress.total)}</AppText>
+                      <AppText variant="display">{formatAmount(progress.total)}</AppText>
                       <AppText variant="body" color={theme.textMuted}>
                         / {formatAmount(progress.target)} {goal.tracker.unit}
                       </AppText>
@@ -318,7 +318,7 @@ export default function GoalDetailScreen() {
                 {isCheck ? null : progress.isComplete ? (
                   <View style={[styles.doneBadge, { backgroundColor: withAlpha(theme.success, 0.14) }]}>
                     <Ionicons name="checkmark-circle" size={16} color={theme.success} />
-                    <AppText variant="caption" color={theme.success} style={styles.doneText}>
+                    <AppText variant="bodyStrong" color={theme.success}>
                       {strings.today.done}
                     </AppText>
                   </View>
@@ -329,11 +329,7 @@ export default function GoalDetailScreen() {
                 )}
               </View>
 
-              <ProgressBar
-                ratio={progress.ratio}
-                color={progress.isComplete ? theme.success : color}
-                height={10}
-              />
+              <ProgressBar ratio={progress.ratio} height={10} />
 
               <View style={styles.summaryFooter}>
                 <AppText variant="caption" color={theme.textMuted}>
@@ -509,7 +505,14 @@ export default function GoalDetailScreen() {
             <Pressable
               onPress={confirmArchive}
               accessibilityRole="button"
-              style={({ pressed }) => [styles.archive, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.archive,
+                {
+                  backgroundColor: withAlpha(theme.danger, 0.08),
+                  borderColor: withAlpha(theme.danger, 0.28),
+                },
+                pressed && styles.pressed,
+              ]}
             >
               <AppText variant="bodyStrong" color={theme.danger}>
                 {strings.goalDetail.archive}
@@ -592,17 +595,8 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     gap: spacing.xs,
   },
-  amount: {
-    fontSize: 32,
-    lineHeight: 38,
-    fontWeight: '700',
-    letterSpacing: -0.6,
-  },
-  checkStatus: {
-    fontSize: 24,
-    lineHeight: 30,
-    fontWeight: '700',
-    letterSpacing: -0.4,
+  content: {
+    gap: spacing.xl,
   },
   doneBadge: {
     flexDirection: 'row',
@@ -611,9 +605,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: radius.pill,
-  },
-  doneText: {
-    fontWeight: '600',
   },
   summaryFooter: {
     flexDirection: 'row',
@@ -694,6 +685,10 @@ const styles = StyleSheet.create({
   },
   archive: {
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
     paddingVertical: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
   },
 });

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { AppText } from '@/components/app-text';
-import { radius, spacing, useTheme } from '@/theme';
+import { radius, fontFamily, spacing, useTheme } from '@/theme';
 
 interface TextFieldProps extends Omit<TextInputProps, 'style'> {
   label?: string;
@@ -37,7 +37,7 @@ export function TextField({
         style={[
           styles.inputRow,
           {
-            backgroundColor: theme.surface,
+            backgroundColor: theme.surfaceMuted,
             borderColor,
           },
           multiline && styles.multilineRow,
@@ -55,11 +55,8 @@ export function TextField({
             onBlur?.(event);
           }}
           placeholderTextColor={theme.textMuted}
-          style={[
-            styles.input,
-            multiline && styles.multilineInput,
-            { color: theme.text },
-          ]}
+          selectionColor={theme.primary}
+          style={[styles.input, multiline && styles.multilineInput, { color: theme.text }]}
         />
         {suffix ? (
           <AppText variant="bodyStrong" color={theme.textMuted}>
@@ -89,7 +86,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    minHeight: 48,
+    minHeight: 50,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
@@ -100,6 +97,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
+    fontFamily: fontFamily.sans,
     fontSize: 15,
     paddingVertical: spacing.sm,
   },

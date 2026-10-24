@@ -23,7 +23,7 @@ export function CheckToggle({
   disabled = false,
 }: CheckToggleProps) {
   const theme = useTheme();
-  const tint = color ?? theme.primary;
+  const tint = color ?? theme.success;
   const isDisabled = disabled || !onPress;
 
   return (
@@ -41,7 +41,7 @@ export function CheckToggle({
           height: size,
           borderRadius: size / 2,
           borderColor: checked ? tint : theme.border,
-          backgroundColor: checked ? withAlpha(tint, 0.16) : theme.surface,
+          backgroundColor: checked ? withAlpha(tint, 0.16) : theme.surfaceMuted,
         },
         isDisabled && styles.disabled,
         pressed && !isDisabled && styles.pressed,

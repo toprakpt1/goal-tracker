@@ -41,7 +41,7 @@ export default function GoalsScreen() {
   }, [data]);
 
   return (
-    <Screen>
+    <Screen contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <View style={styles.headerText}>
           <AppText variant="display">{strings.goals.title}</AppText>
@@ -155,6 +155,9 @@ export default function GoalsScreen() {
 }
 
 const styles = StyleSheet.create({
+  content: {
+    gap: spacing.xl,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -169,6 +172,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
+    minHeight: 44,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,

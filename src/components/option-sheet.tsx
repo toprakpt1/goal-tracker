@@ -52,7 +52,8 @@ export function OptionSheet<T extends string>({
           style={[
             styles.sheet,
             {
-              backgroundColor: theme.background,
+              backgroundColor: theme.surfaceElevated,
+              borderColor: theme.border,
               paddingBottom: insets.bottom + spacing.lg,
             },
           ]}
@@ -61,7 +62,7 @@ export function OptionSheet<T extends string>({
 
           <AppText variant="heading">{title}</AppText>
 
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={[styles.card, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}>
             {options.map((option, index) => {
               const selected = option.value === value;
               return (
@@ -122,6 +123,7 @@ const styles = StyleSheet.create({
   sheet: {
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,
+    borderTopWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.sm,
     gap: spacing.md,

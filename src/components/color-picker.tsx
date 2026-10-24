@@ -1,6 +1,5 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { withAlpha } from '@/lib/color';
 import { trackerPalette, useTheme } from '@/theme';
 
 interface ColorPickerProps {
@@ -26,12 +25,16 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
             style={({ pressed }) => [
               styles.swatch,
               { backgroundColor: color },
-              selected && { borderColor: theme.text, borderWidth: 3 },
+              selected && {
+                borderColor: theme.text,
+                borderWidth: 2,
+                transform: [{ scale: 1.08 }],
+              },
               pressed && styles.pressed,
             ]}
           >
             {selected ? (
-              <View style={[styles.dot, { backgroundColor: withAlpha('#FFFFFF', 0.9) }]} />
+              <View style={[styles.dot, { backgroundColor: theme.text }]} />
             ) : null}
           </Pressable>
         );
@@ -47,9 +50,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   swatch: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',

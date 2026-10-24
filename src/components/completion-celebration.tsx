@@ -40,7 +40,10 @@ export function CompletionCelebration({ completions, onClose }: CompletionCelebr
         />
 
         <View
-          style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
+          style={[
+            styles.card,
+            { backgroundColor: theme.surfaceElevated, borderColor: theme.border },
+          ]}
           accessibilityViewIsModal
         >
           <View style={styles.confetti} pointerEvents="none">
@@ -135,6 +138,11 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     padding: spacing.xl,
     gap: spacing.lg,
+    shadowColor: '#000000',
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 10,
   },
   confetti: {
     flexDirection: 'row',
@@ -152,6 +160,8 @@ const styles = StyleSheet.create({
     borderRadius: 38,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(90, 209, 138, 0.35)',
   },
   heading: {
     gap: spacing.xs,

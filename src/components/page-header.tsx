@@ -26,7 +26,7 @@ export function PageHeader({ title, subtitle, onBack, right }: PageHeaderProps) 
           hitSlop={10}
           style={({ pressed }) => [
             styles.iconButton,
-            { backgroundColor: theme.surface, borderColor: theme.border },
+            { backgroundColor: theme.surfaceMuted, borderColor: theme.border },
             pressed && styles.pressed,
           ]}
         >
@@ -56,10 +56,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     minHeight: 44,
+    paddingBottom: spacing.md,
   },
   iconButton: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
@@ -67,9 +68,10 @@ const styles = StyleSheet.create({
   },
   titleBlock: {
     flex: 1,
+    gap: 2,
   },
   spacer: {
-    width: 42,
+    width: 44,
   },
   pressed: {
     opacity: 0.7,
