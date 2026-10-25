@@ -1,13 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { StyleSheet, View, type ColorValue } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { strings } from '@/i18n/strings';
 import { withAlpha } from '@/lib/color';
 import { fontFamily, useTheme } from '@/theme';
 
+const TAB_BAR_HEIGHT = 68;
+
 export default function TabsLayout() {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -20,8 +24,12 @@ export default function TabsLayout() {
           backgroundColor: '#16110E',
           borderTopColor: theme.border,
           borderTopWidth: StyleSheet.hairlineWidth,
-          height: 68,
+          // React Navigation uses a numeric height verbatim and still applies
+          // the bottom inset as padding, so the inset has to be added here or
+          // the icons and labels end up underneath the system navigation bar.
+          height: TAB_BAR_HEIGHT + insets.bottom,
           paddingTop: 6,
+          paddingBottom: insets.bottom,
         },
         tabBarItemStyle: {
           paddingBottom: 6,

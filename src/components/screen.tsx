@@ -1,9 +1,9 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import type { PropsWithChildren } from 'react';
 import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { gradients, useTheme } from '@/theme';
+import { gradients, spacing, useTheme } from '@/theme';
 
 interface ScreenProps extends PropsWithChildren {
   scroll?: boolean;
@@ -12,6 +12,10 @@ interface ScreenProps extends PropsWithChildren {
 
 export function Screen({ children, scroll = true, contentContainerStyle }: ScreenProps) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  // Keep the end of the content above the system navigation bar. Tab screens
+  // already end above the tab bar, so there this only adds breathing room.
+  const contentSpacing = { paddingBottom: spacing.huge + insets.bottom };
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
@@ -25,7 +29,7 @@ export function Screen({ children, scroll = true, contentContainerStyle }: Scree
 
       {scroll ? (
         <ScrollView
-          contentContainerStyle={[styles.content, contentContainerStyle]}
+          contentContainerStyle={[styles.content, contentSpacing, contentContainerStyle]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -33,7 +37,9 @@ export function Screen({ children, scroll = true, contentContainerStyle }: Scree
           {children}
         </ScrollView>
       ) : (
-        <View style={[styles.content, styles.flex, contentContainerStyle]}>{children}</View>
+        <View style={[styles.content, styles.flex, contentSpacing, contentContainerStyle]}>
+          {children}
+        </View>
       )}
     </SafeAreaView>
   );
@@ -53,7 +59,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 40,
   },
   flex: {
     flex: 1,
