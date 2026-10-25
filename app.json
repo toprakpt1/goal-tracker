@@ -7,8 +7,8 @@
     "icon": "./assets/images/icon.png",
     "scheme": "goaltracker",
     "userInterfaceStyle": "dark",
+    "backgroundColor": "#120E0B",
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.scopus.goaltracker",
       "supportsTablet": false
     },
