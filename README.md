@@ -16,6 +16,7 @@ Minimal, offline-first goal and habit tracker for Android and iOS. Create recurr
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
 - [Features](#features)
+- [Screenshots](#screenshots)
 - [Usage](#usage)
 - [Project Structure](#project-structure)
 - [Testing](#testing)
@@ -90,6 +91,18 @@ For local native builds, use the Expo workflow for your platform. Native `ios/` 
 - Configurable week start and appearance preferences
 - Fully offline local data storage with SQLite
 - Turkish and English interface strings
+
+## Screenshots
+
+The screenshots below were captured from the Android emulator while running the app through Expo.
+
+| Today | Goals |
+| --- | --- |
+| <img src="assets/screenshots/today.png" alt="Goal Tracker Today screen" width="280" /> | <img src="assets/screenshots/goals.png" alt="Goal Tracker Goals screen" width="280" /> |
+
+| Stats | New Goal |
+| --- | --- |
+| <img src="assets/screenshots/stats.png" alt="Goal Tracker Stats screen" width="280" /> | <img src="assets/screenshots/new-goal.png" alt="Goal Tracker New Goal screen" width="280" /> |
 
 ## Usage
 
