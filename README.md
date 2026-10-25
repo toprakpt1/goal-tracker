@@ -1,5 +1,9 @@
 # Goal Tracker
 
+<p align="center">
+  <img src="assets/images/icon.png" alt="Goal Tracker app icon" width="160" />
+</p>
+
 Minimal, offline-first goal and habit tracker for Android and iOS. Create recurring goals, log progress in a few taps, and use streaks and statistics to stay consistent.
 
 [Report a bug](https://github.com/toprakpt1/scopus/issues/new) · [Request a feature](https://github.com/toprakpt1/scopus/issues/new)
@@ -23,9 +27,11 @@ Minimal, offline-first goal and habit tracker for Android and iOS. Create recurr
 
 ## About the Project
 
-Goal Tracker is a calm, focused mobile app for turning intentions into repeatable routines. Organize goals by tracker, choose a daily, weekly, monthly, or yearly target, and record completions or numeric progress without leaving the app.
+Goal Tracker is a calm, focused mobile app for turning intentions into repeatable routines. It helps you build consistency by making your goals visible, measurable, and easy to complete every day.
 
-The app is designed to work offline. Goals, logs, settings, and statistics are stored locally on the device using SQLite, while notifications are optional and handled through the platform notification system.
+Create trackers for the things you want to improve, such as reading, exercise, water intake, or learning a new skill. Each tracker can contain check-based or numeric goals with daily, weekly, monthly, or yearly targets. Log progress from the Today screen, follow your current and best streaks, and use Stats to understand how consistently you are moving forward.
+
+Goal Tracker is designed for people who want a simple productivity tool without unnecessary distractions. There are no accounts or subscription walls: your goals, logs, settings, and statistics stay on your device using SQLite. The app works offline, and reminders are optional so you stay in control of your routine and notifications.
 
 ### Built With
 
