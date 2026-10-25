@@ -25,6 +25,7 @@ import {
 import { archiveGoal } from '@/db/repositories/goals';
 import { deleteLog } from '@/db/repositories/logs';
 import { getProgress } from '@/domain/progress';
+import { getGoalScopeLabel } from '@/domain/scope';
 import { getStreakSummary } from '@/domain/streak';
 import type { LogEntry } from '@/domain/types';
 import { useDbQuery } from '@/hooks/use-db-query';
@@ -89,6 +90,7 @@ export default function GoalDetailScreen() {
   const color = goal?.tracker.color ?? theme.primary;
   const streakUnit = goal ? strings.streak.units[goal.period] : '';
   const isCheck = goal?.tracker.kind === 'check';
+  const scopeLabel = goal ? getGoalScopeLabel(goal, settings.weekStartsOn) : null;
 
   function showUndo(logId: string, message: string) {
     if (undoTimer.current) {
@@ -358,6 +360,15 @@ export default function GoalDetailScreen() {
                 </AppText>
               </View>
 
+              {scopeLabel ? (
+                <View style={styles.reminderRow}>
+                  <Ionicons name="calendar-outline" size={14} color={theme.textMuted} />
+                  <AppText variant="caption" color={theme.textMuted}>
+                    {strings.goalDetail.scopeLabel}: {scopeLabel}
+                  </AppText>
+                </View>
+              ) : null}
+
               {goal.reminderTime ? (
                 <View style={styles.reminderRow}>
                   <Ionicons name="notifications-outline" size={14} color={theme.textMuted} />
@@ -370,7 +381,43 @@ export default function GoalDetailScreen() {
               ) : null}
             </View>
 
-            {isCheck ? (
+            {goal.note ? (
+              <View
+                style={[
+                  styles.noteCard,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+              >
+                <View style={styles.noteHeader}>
+                  <Ionicons name="document-text-outline" size={15} color={theme.textMuted} />
+                  <AppText variant="label" color={theme.textMuted}>
+                    {strings.goalDetail.note}
+                  </AppText>
+                </View>
+                <AppText variant="body">{goal.note}</AppText>
+              </View>
+            ) : null}
+
+            {!detail.isActiveNow ? (
+              <View
+                style={[
+                  styles.inactiveCard,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+              >
+                <Ionicons name="calendar-outline" size={17} color={theme.textMuted} />
+                <View style={styles.inactiveText}>
+                  {scopeLabel ? (
+                    <AppText variant="bodyStrong" numberOfLines={1}>
+                      {scopeLabel}
+                    </AppText>
+                  ) : null}
+                  <AppText variant="caption" color={theme.textMuted}>
+                    {strings.goalDetail.notActive}
+                  </AppText>
+                </View>
+              </View>
+            ) : isCheck ? (
               <PrimaryButton
                 label={
                   progress.isComplete ? strings.check.markUndone : strings.check.markDone
@@ -617,6 +664,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     marginTop: -spacing.xs,
+  },
+  noteCard: {
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: spacing.lg,
+    gap: spacing.xs,
+  },
+  noteHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  inactiveCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: spacing.lg,
+  },
+  inactiveText: {
+    flex: 1,
+    gap: 2,
   },
   streakCard: {
     flexDirection: 'row',

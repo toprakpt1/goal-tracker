@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { getPeriodRange } from '@/domain/period';
+import { isGoalActiveInRange } from '@/domain/scope';
 import type { GoalWithTracker, LogEntry, WeekStartsOn } from '@/domain/types';
 
 import { listGoalsWithTracker } from './repositories/goals';
@@ -14,8 +15,10 @@ export interface DashboardData {
 }
 
 /**
- * Loads everything Today needs in two queries: active goals (with their
- * tracker) and the logs that fall inside any of the four current periods.
+ * Loads everything Today needs in two queries: the goals active in their
+ * current period (with their tracker) and the logs that fall inside any of the
+ * four current periods. Scoped goals that are not active right now are left
+ * out so a future or expired goal never shows up on Today.
  *
  * A current week can start in the previous year, so the fetch window starts at
  * the earlier of the yearly and weekly boundaries.
@@ -30,10 +33,14 @@ export async function loadDashboard(
   const rangeStart = Math.min(yearly.start.getTime(), weekly.start.getTime());
   const rangeEnd = Math.max(yearly.end.getTime(), weekly.end.getTime());
 
-  const [goals, logs] = await Promise.all([
+  const [allGoals, logs] = await Promise.all([
     listGoalsWithTracker(db),
     listLogsBetween(db, rangeStart, rangeEnd),
   ]);
+
+  const goals = allGoals.filter((goal) =>
+    isGoalActiveInRange(goal, getPeriodRange(goal.period, now, weekStartsOn)),
+  );
 
   const logsByTracker = new Map<string, LogEntry[]>();
   for (const log of logs) {

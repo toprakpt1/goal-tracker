@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { getPeriodRange } from '@/domain/period';
 import { getProgress, type Progress } from '@/domain/progress';
+import { getGoalActiveRange } from '@/domain/scope';
 import type { GoalWithTracker, LogEntry, PeriodRange, WeekStartsOn } from '@/domain/types';
 
 import { listGoalsWithTracker } from './repositories/goals';
@@ -67,9 +67,18 @@ async function detectCompletions(
     return [];
   }
 
-  const ranges = goals.map((goal) => getPeriodRange(goal.period, now, weekStartsOn));
-  const rangeStart = Math.min(...ranges.map((range) => range.start.getTime()));
-  const rangeEnd = Math.max(...ranges.map((range) => range.end.getTime()));
+  // A scoped goal can only be completed while it is active. Future and expired
+  // goals stay out of the celebration path entirely.
+  const active = goals.flatMap((goal) => {
+    const range = getGoalActiveRange(goal, now, weekStartsOn);
+    return range ? [{ goal, range }] : [];
+  });
+  if (active.length === 0) {
+    return [];
+  }
+
+  const rangeStart = Math.min(...active.map((entry) => entry.range.start.getTime()));
+  const rangeEnd = Math.max(...active.map((entry) => entry.range.end.getTime()));
 
   const [logs, recorded] = await Promise.all([
     listLogsForTrackerBetween(db, trackerId, rangeStart, rangeEnd),
@@ -78,9 +87,7 @@ async function detectCompletions(
 
   const completions: NewCompletion[] = [];
 
-  for (let index = 0; index < goals.length; index += 1) {
-    const goal = goals[index];
-    const range = ranges[index];
+  for (const { goal, range } of active) {
     const progress = getProgress(goal.target, logs, range);
 
     if (!progress.isComplete) {
@@ -118,7 +125,11 @@ export async function toggleCheckGoal(
   now: Date = new Date(),
   weekStartsOn: WeekStartsOn = 1,
 ): Promise<CheckToggleResult> {
-  const range = getPeriodRange(goal.period, now, weekStartsOn);
+  const range = getGoalActiveRange(goal, now, weekStartsOn);
+  if (!range) {
+    throw new Error('This goal is not active in the current period.');
+  }
+
   const logs = await listLogsForTrackerBetween(
     db,
     goal.trackerId,

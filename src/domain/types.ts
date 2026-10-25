@@ -30,6 +30,10 @@ export interface Goal {
   period: Period;
   target: number;
   reminderTime: string | null;
+  /** Active window in epoch ms. Both null means every period. */
+  scopeStart: number | null;
+  scopeEnd: number | null;
+  note: string | null;
   archived: boolean;
   sortOrder: number;
   createdAt: number;

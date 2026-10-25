@@ -11,6 +11,9 @@ interface GoalRow {
   period: Period;
   target: number;
   reminder_time: string | null;
+  scope_start: number | null;
+  scope_end: number | null;
+  note: string | null;
   archived: number;
   sort_order: number;
   created_at: number;
@@ -33,6 +36,9 @@ export interface CreateGoalInput {
   period: Period;
   target: number;
   reminderTime?: string | null;
+  scopeStart?: number | null;
+  scopeEnd?: number | null;
+  note?: string | null;
   sortOrder?: number;
 }
 
@@ -40,6 +46,9 @@ export interface UpdateGoalInput {
   period?: Period;
   target?: number;
   reminderTime?: string | null;
+  scopeStart?: number | null;
+  scopeEnd?: number | null;
+  note?: string | null;
 }
 
 const GOAL_WITH_TRACKER_SELECT = `
@@ -65,6 +74,9 @@ function mapGoal(row: GoalRow): Goal {
     period: row.period,
     target: row.target,
     reminderTime: row.reminder_time,
+    scopeStart: row.scope_start,
+    scopeEnd: row.scope_end,
+    note: row.note,
     archived: row.archived === 1,
     sortOrder: row.sort_order,
     createdAt: row.created_at,
@@ -93,6 +105,20 @@ function mapGoalWithTracker(row: GoalWithTrackerRow): GoalWithTracker {
 function assertTarget(target: number): void {
   if (!Number.isFinite(target) || !(target > 0)) {
     throw new Error('A goal target must be greater than zero.');
+  }
+}
+
+function normalizeNote(note: string | null | undefined): string | null {
+  const trimmed = note?.trim();
+  return trimmed ? trimmed.slice(0, 200) : null;
+}
+
+function assertScope(scopeStart: number | null, scopeEnd: number | null): void {
+  if ((scopeStart == null) !== (scopeEnd == null)) {
+    throw new Error('A goal scope needs both a start and an end.');
+  }
+  if (scopeStart != null && scopeEnd != null && scopeStart >= scopeEnd) {
+    throw new Error('A goal scope must end after it starts.');
   }
 }
 
@@ -154,8 +180,9 @@ export async function listGoalsForTracker(
 }
 
 /**
- * Enforces the "one target per tracker and period" rule used by the add-goal
- * form. Archiving a goal frees the slot again.
+ * Enforces the "one recurring target per tracker and period" rule used by the
+ * add-goal form. Scoped goals are allowed to overlap and are not returned.
+ * Archiving a goal frees the slot again.
  */
 export async function findGoalForPeriod(
   db: SQLiteDatabase,
@@ -166,6 +193,7 @@ export async function findGoalForPeriod(
   const row = await db.getFirstAsync<GoalRow>(
     `SELECT * FROM goals
      WHERE tracker_id = ? AND period = ? AND archived = 0
+       AND scope_start IS NULL AND scope_end IS NULL
        AND (? IS NULL OR id <> ?)
      LIMIT 1`,
     trackerId,
@@ -185,25 +213,38 @@ export async function createGoal(db: SQLiteDatabase, input: CreateGoalInput): Pr
   const target = tracker.kind === 'check' ? 1 : input.target;
   assertTarget(target);
 
+  const scopeStart = input.scopeStart ?? null;
+  const scopeEnd = input.scopeEnd ?? null;
+  assertScope(scopeStart, scopeEnd);
+
   const goal: Goal = {
     id: randomUUID(),
     trackerId: input.trackerId,
     period: input.period,
     target,
     reminderTime: input.reminderTime ?? null,
+    scopeStart,
+    scopeEnd,
+    note: normalizeNote(input.note),
     archived: false,
     sortOrder: input.sortOrder ?? 0,
     createdAt: Date.now(),
   };
 
   await db.runAsync(
-    `INSERT INTO goals (id, tracker_id, period, target, reminder_time, archived, sort_order, created_at)
-     VALUES (?, ?, ?, ?, ?, 0, ?, ?)`,
+    `INSERT INTO goals (
+       id, tracker_id, period, target, reminder_time, scope_start, scope_end, note,
+       archived, sort_order, created_at
+     )
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
     goal.id,
     goal.trackerId,
     goal.period,
     goal.target,
     goal.reminderTime,
+    goal.scopeStart,
+    goal.scopeEnd,
+    goal.note,
     goal.sortOrder,
     goal.createdAt,
   );
@@ -229,11 +270,20 @@ export async function updateGoal(
   const target = tracker.kind === 'check' ? 1 : (input.target ?? current.target);
   assertTarget(target);
 
+  const scopeStart = input.scopeStart === undefined ? current.scopeStart : input.scopeStart;
+  const scopeEnd = input.scopeEnd === undefined ? current.scopeEnd : input.scopeEnd;
+  assertScope(scopeStart, scopeEnd);
+
   await db.runAsync(
-    `UPDATE goals SET period = ?, target = ?, reminder_time = ? WHERE id = ?`,
+    `UPDATE goals
+     SET period = ?, target = ?, reminder_time = ?, scope_start = ?, scope_end = ?, note = ?
+     WHERE id = ?`,
     input.period ?? current.period,
     target,
     input.reminderTime === undefined ? current.reminderTime : input.reminderTime,
+    scopeStart,
+    scopeEnd,
+    input.note === undefined ? current.note : normalizeNote(input.note),
     goalId,
   );
 }

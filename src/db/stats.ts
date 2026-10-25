@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { getStreakSummary } from '@/domain/streak';
+import { isRecurringGoal } from '@/domain/scope';
 import type { GoalWithTracker, LogEntry, WeekStartsOn } from '@/domain/types';
 
 import { listGoalsWithTracker } from './repositories/goals';
@@ -43,17 +44,28 @@ export async function loadStats(
     }
   }
 
-  const rows: GoalStreak[] = goals.map((goal) => {
-    const summary = getStreakSummary(
-      goal.period,
-      goal.target,
-      logsByTracker.get(goal.trackerId) ?? [],
-      now,
-      weekStartsOn,
-    );
+  const rows: GoalStreak[] = goals
+    .filter((goal) => isRecurringGoal(goal) || (goal.scopeStart as number) <= now.getTime())
+    .map((goal) => {
+      const trackerLogs = logsByTracker.get(goal.trackerId) ?? [];
+      const scopedLogs = isRecurringGoal(goal)
+        ? trackerLogs
+        : trackerLogs.filter(
+            (log) =>
+              log.loggedAt >= (goal.scopeStart as number) &&
+              log.loggedAt < (goal.scopeEnd as number),
+          );
 
-    return { goal, ...summary };
-  });
+      const summary = getStreakSummary(
+        goal.period,
+        goal.target,
+        scopedLogs,
+        now,
+        weekStartsOn,
+      );
+
+      return { goal, ...summary };
+    });
 
   return {
     goals: rows,

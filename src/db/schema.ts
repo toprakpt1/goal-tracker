@@ -4,7 +4,7 @@ export const DATABASE_NAME = 'goaltracker.db';
  * Bump this and add a branch in `migrations.ts` for every schema change.
  * The value is stored in SQLite's `PRAGMA user_version`.
  */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const SCHEMA_V1 = `
 CREATE TABLE trackers (
@@ -72,4 +72,16 @@ UPDATE trackers SET icon = 'target' WHERE icon IS NULL OR trim(icon) = '';
 export const SCHEMA_V3 = `
 ALTER TABLE trackers ADD COLUMN kind TEXT NOT NULL DEFAULT 'numeric'
   CHECK (kind IN ('numeric', 'check'));
+`;
+
+/**
+ * v4 lets a goal be limited to one period and carry a free-text note.
+ *
+ * A null scope pair keeps the original "every period" behaviour, so existing
+ * goals do not need to be rewritten.
+ */
+export const SCHEMA_V4 = `
+ALTER TABLE goals ADD COLUMN scope_start INTEGER;
+ALTER TABLE goals ADD COLUMN scope_end INTEGER;
+ALTER TABLE goals ADD COLUMN note TEXT;
 `;

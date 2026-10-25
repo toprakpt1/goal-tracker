@@ -18,12 +18,15 @@ import { ColorPicker } from '@/components/color-picker';
 import { IconPicker } from '@/components/icon-picker';
 import { PageHeader } from '@/components/page-header';
 import { PrimaryButton } from '@/components/primary-button';
+import { ScheduleField, type ScheduleMode } from '@/components/schedule-field';
 import { Screen } from '@/components/screen';
 import { SegmentedControl } from '@/components/segmented-control';
 import { TextField } from '@/components/text-field';
 import { TrackerIcon } from '@/components/tracker-icon';
 import { createGoal, listGoals } from '@/db/repositories/goals';
 import { createTracker, listTrackers } from '@/db/repositories/trackers';
+import { getPeriodRange } from '@/domain/period';
+import { formatPeriodRange, getScopeForDate, isRecurringGoal } from '@/domain/scope';
 import {
   PERIODS,
   type Goal,
@@ -32,6 +35,7 @@ import {
   type TrackerKind,
 } from '@/domain/types';
 import { useDbQuery } from '@/hooks/use-db-query';
+import { useSettings } from '@/hooks/use-settings';
 import { strings } from '@/i18n/strings';
 import { withAlpha } from '@/lib/color';
 import { formatAmount } from '@/lib/format';
@@ -59,6 +63,7 @@ export default function NewGoalScreen() {
   const theme = useTheme();
   const db = useSQLiteContext();
   const params = useLocalSearchParams<{ trackerId?: string }>();
+  const settings = useSettings();
   const updateSettings = useSettingsStore((state) => state.update);
 
   const { data, loading } = useDbQuery(
@@ -82,6 +87,9 @@ export default function NewGoalScreen() {
   const [color, setColor] = useState<string>(trackerPalette[0]);
   const [defaultStep, setDefaultStep] = useState('1');
   const [reminderTime, setReminderTime] = useState('');
+  const [scopeMode, setScopeMode] = useState<ScheduleMode>('every');
+  const [scopeDate, setScopeDate] = useState(() => new Date());
+  const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -137,7 +145,7 @@ export default function NewGoalScreen() {
       return result;
     }
     for (const goal of data.goals) {
-      if (goal.trackerId === currentId) {
+      if (goal.trackerId === currentId && isRecurringGoal(goal)) {
         result[goal.period] = goal;
       }
     }
@@ -158,7 +166,7 @@ export default function NewGoalScreen() {
     setError(null);
 
     const entries = PERIODS.flatMap((period) => {
-      if (existingGoals[period]) {
+      if (scopeMode === 'every' && existingGoals[period]) {
         return [];
       }
       if (activeKind === 'check') {
@@ -237,13 +245,22 @@ export default function NewGoalScreen() {
         }
 
         const existingCount = data.goals.filter((goal) => goal.trackerId === trackerId).length;
+        const trimmedNote = note.trim() || null;
 
         for (const [index, entry] of entries.entries()) {
+          const scope =
+            scopeMode === 'specific'
+              ? getScopeForDate(entry.period, scopeDate, settings.weekStartsOn)
+              : { scopeStart: null, scopeEnd: null };
+
           await createGoal(db, {
             trackerId,
             period: entry.period,
             target: entry.target,
             reminderTime: reminder,
+            scopeStart: scope.scopeStart,
+            scopeEnd: scope.scopeEnd,
+            note: trimmedNote,
             sortOrder: existingCount + index,
           });
         }
@@ -464,6 +481,19 @@ export default function NewGoalScreen() {
             </View>
           ) : null}
 
+          <ScheduleField
+            mode={scopeMode}
+            onModeChange={(value) => {
+              setScopeMode(value);
+              setError(null);
+            }}
+            date={scopeDate}
+            onDateChange={(date) => {
+              setScopeDate(date);
+              setError(null);
+            }}
+          />
+
           <View style={styles.section}>
             <View style={styles.targetsHeader}>
               <AppText variant="label" color={theme.textMuted}>
@@ -486,7 +516,15 @@ export default function NewGoalScreen() {
             >
               {PERIODS.map((period, index) => {
                 const existing = existingGoals[period];
+                const blocked = scopeMode === 'every' ? existing : null;
                 const checkSelected = checkPeriods.includes(period);
+                const scopedLabel =
+                  scopeMode === 'specific'
+                    ? formatPeriodRange(
+                        period,
+                        getPeriodRange(period, scopeDate, settings.weekStartsOn),
+                      )
+                    : null;
                 return (
                   <View key={period}>
                     {index > 0 ? (
@@ -496,19 +534,23 @@ export default function NewGoalScreen() {
                       <View style={styles.targetLabel}>
                         <AppText variant="bodyStrong">{strings.periods[period]}</AppText>
                         <AppText variant="caption" color={theme.textMuted}>
-                          {existing
+                          {blocked
                             ? activeKind === 'check'
                               ? `${strings.check.checklist} · ${strings.goalForm.alreadyTracked}`
-                              : `${formatAmount(existing.target)} ${effectiveUnit} · ${
+                              : `${formatAmount(blocked.target)} ${effectiveUnit} · ${
                                   strings.goalForm.alreadyTracked
                                 }`
-                            : activeKind === 'check'
-                              ? strings.goalForm.checkGoalLabel
-                              : effectiveUnit}
+                            : scopedLabel
+                              ? effectiveUnit
+                                ? `${scopedLabel} · ${effectiveUnit}`
+                                : scopedLabel
+                              : activeKind === 'check'
+                                ? strings.goalForm.checkGoalLabel
+                                : effectiveUnit}
                         </AppText>
                       </View>
 
-                      {existing ? (
+                      {blocked ? (
                         <Ionicons name="checkmark-circle" size={22} color={theme.success} />
                       ) : activeKind === 'check' ? (
                         <CheckToggle
@@ -552,6 +594,18 @@ export default function NewGoalScreen() {
               autoCorrect={false}
               maxLength={5}
               hint={strings.goalForm.reminderHint}
+            />
+          </View>
+
+          <View style={styles.section}>
+            <TextField
+              label={strings.goalForm.note}
+              value={note}
+              onChangeText={setNote}
+              placeholder={strings.goalForm.notePlaceholder}
+              multiline
+              maxLength={200}
+              hint={strings.goalForm.noteHint}
             />
           </View>
 

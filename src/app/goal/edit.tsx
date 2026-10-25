@@ -7,13 +7,16 @@ import { AppText } from '@/components/app-text';
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { PrimaryButton } from '@/components/primary-button';
+import { ScheduleField, type ScheduleMode } from '@/components/schedule-field';
 import { Screen } from '@/components/screen';
 import { SegmentedControl } from '@/components/segmented-control';
 import { TextField } from '@/components/text-field';
 import { TrackerIcon } from '@/components/tracker-icon';
 import { getGoalWithTracker, listGoalsForTracker, updateGoal } from '@/db/repositories/goals';
+import { getScopeForDate, isRecurringGoal } from '@/domain/scope';
 import { PERIODS, type Goal, type GoalWithTracker, type Period } from '@/domain/types';
 import { useDbQuery } from '@/hooks/use-db-query';
+import { useSettings } from '@/hooks/use-settings';
 import { strings } from '@/i18n/strings';
 import { withAlpha } from '@/lib/color';
 import { formatAmount } from '@/lib/format';
@@ -70,10 +73,16 @@ export default function EditGoalScreen() {
 function GoalEditForm({ goal, goals }: EditGoalData) {
   const theme = useTheme();
   const db = useSQLiteContext();
+  const settings = useSettings();
   const updateSettings = useSettingsStore((state) => state.update);
   const [period, setPeriod] = useState<Period>(goal.period);
   const [target, setTarget] = useState(String(goal.target));
   const [reminderTime, setReminderTime] = useState(goal.reminderTime ?? '');
+  const [scopeMode, setScopeMode] = useState<ScheduleMode>(
+    isRecurringGoal(goal) ? 'every' : 'specific',
+  );
+  const [scopeDate, setScopeDate] = useState(() => new Date(goal.scopeStart ?? Date.now()));
+  const [note, setNote] = useState(goal.note ?? '');
   const [error, setError] = useState<string | null>(null);
   const [reminderError, setReminderError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -83,7 +92,11 @@ function GoalEditForm({ goal, goals }: EditGoalData) {
   const periodOptions = PERIODS.map((value) => ({
     value,
     label: strings.periods[value],
-    disabled: goals.some((item) => item.period === value && item.id !== goal.id),
+    disabled:
+      scopeMode === 'every' &&
+      goals.some(
+        (item) => item.period === value && item.id !== goal.id && isRecurringGoal(item),
+      ),
   }));
 
   async function handleSave() {
@@ -93,8 +106,13 @@ function GoalEditForm({ goal, goals }: EditGoalData) {
       return;
     }
 
-    const conflict = goals.find((item) => item.period === period && item.id !== goal.id);
-    if (conflict) {
+    const conflict = goals.find(
+      (item) =>
+        item.period === period &&
+        item.id !== goal.id &&
+        isRecurringGoal(item),
+    );
+    if (scopeMode === 'every' && conflict) {
       setError(strings.goalForm.periodConflict);
       return;
     }
@@ -111,7 +129,19 @@ function GoalEditForm({ goal, goals }: EditGoalData) {
     setReminderError(null);
 
     try {
-      await updateGoal(db, goal.id, { period, target: parsed, reminderTime: reminder });
+      const scope =
+        scopeMode === 'specific'
+          ? getScopeForDate(period, scopeDate, settings.weekStartsOn)
+          : { scopeStart: null, scopeEnd: null };
+
+      await updateGoal(db, goal.id, {
+        period,
+        target: parsed,
+        reminderTime: reminder,
+        scopeStart: scope.scopeStart,
+        scopeEnd: scope.scopeEnd,
+        note: note.trim() || null,
+      });
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : String(saveError));
       setSaving(false);
@@ -202,6 +232,19 @@ function GoalEditForm({ goal, goals }: EditGoalData) {
         <SegmentedControl options={periodOptions} value={period} onChange={setPeriod} />
       </View>
 
+      <ScheduleField
+        mode={scopeMode}
+        onModeChange={(value) => {
+          setScopeMode(value);
+          setError(null);
+        }}
+        date={scopeDate}
+        onDateChange={(date) => {
+          setScopeDate(date);
+          setError(null);
+        }}
+      />
+
       {isCheck ? (
         <AppText variant="caption" color={theme.textMuted}>
           {strings.check.editGoalHint}
@@ -242,6 +285,16 @@ function GoalEditForm({ goal, goals }: EditGoalData) {
         maxLength={5}
         hint={strings.goalForm.reminderHint}
         error={reminderError}
+      />
+
+      <TextField
+        label={strings.goalForm.note}
+        value={note}
+        onChangeText={setNote}
+        placeholder={strings.goalForm.notePlaceholder}
+        multiline
+        maxLength={200}
+        hint={strings.goalForm.noteHint}
       />
 
       <PrimaryButton

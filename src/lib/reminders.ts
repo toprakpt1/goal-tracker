@@ -97,7 +97,16 @@ async function performSync(db: SQLiteDatabase, settings: Settings): Promise<numb
 
   await ensureNotificationChannel();
 
-  const goals = (await listGoalsWithTracker(db)).filter((goal) => goal.reminderTime);
+  const now = Date.now();
+  const goals = (await listGoalsWithTracker(db)).filter((goal) => {
+    if (!goal.reminderTime) {
+      return false;
+    }
+    if (goal.scopeStart == null || goal.scopeEnd == null) {
+      return true;
+    }
+    return goal.scopeStart <= now && goal.scopeEnd > now;
+  });
   const scheduled = new Set<string>();
   let count = 0;
 

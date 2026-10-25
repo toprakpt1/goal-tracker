@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { format } from 'date-fns';
 import { router } from 'expo-router';
 import { useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
@@ -8,8 +9,11 @@ import { EmptyState } from '@/components/empty-state';
 import { Screen } from '@/components/screen';
 import { TrackerIcon } from '@/components/tracker-icon';
 import { listGoalsWithTracker } from '@/db/repositories/goals';
+import { getGoalScopeLabel } from '@/domain/scope';
 import type { GoalWithTracker, Tracker } from '@/domain/types';
 import { useDbQuery } from '@/hooks/use-db-query';
+import { useSettings } from '@/hooks/use-settings';
+import { useToday } from '@/hooks/use-today';
 import { strings } from '@/i18n/strings';
 import { withAlpha } from '@/lib/color';
 import { formatAmount } from '@/lib/format';
@@ -22,14 +26,25 @@ interface GoalGroup {
 
 export default function GoalsScreen() {
   const theme = useTheme();
+  const today = useToday();
+  const settings = useSettings();
+  const dateKey = format(today, 'yyyy-MM-dd');
+
   const { data, error, loading } = useDbQuery(
     (database) => listGoalsWithTracker(database),
-    'goals',
+    `goals:${dateKey}:${settings.weekStartsOn}`,
   );
 
   const groups = useMemo(() => {
+    const now = today.getTime();
     const result: GoalGroup[] = [];
+
     for (const goal of data ?? []) {
+      // Expired scoped goals stay in Stats, not in the active goal list.
+      if (goal.scopeEnd != null && goal.scopeEnd <= now) {
+        continue;
+      }
+
       const existing = result.find((group) => group.tracker.id === goal.trackerId);
       if (existing) {
         existing.goals.push(goal);
@@ -37,8 +52,9 @@ export default function GoalsScreen() {
         result.push({ tracker: goal.tracker, goals: [goal] });
       }
     }
+
     return result;
-  }, [data]);
+  }, [data, today]);
 
   return (
     <Screen contentContainerStyle={styles.content}>
@@ -123,27 +139,46 @@ export default function GoalsScreen() {
                 <View style={[styles.divider, { backgroundColor: theme.border }]} />
 
                 <View style={styles.goalList}>
-                  {goals.map((goal) => (
-                    <Pressable
-                      key={goal.id}
-                      onPress={() =>
-                        router.push({ pathname: '/goal/[id]', params: { id: goal.id } })
-                      }
-                      accessibilityRole="button"
-                      accessibilityLabel={`${tracker.name}, ${strings.periods[goal.period]}`}
-                      style={({ pressed }) => [styles.goalRow, pressed && styles.pressed]}
-                    >
-                      <AppText variant="body" color={theme.textMuted} style={styles.period}>
-                        {strings.periods[goal.period]}
-                      </AppText>
-                      <AppText variant="bodyStrong">
-                        {tracker.kind === 'check'
-                          ? strings.check.checklist
-                          : `${formatAmount(goal.target)} ${tracker.unit}`}
-                      </AppText>
-                      <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
-                    </Pressable>
-                  ))}
+                  {goals.map((goal) => {
+                    const scopeLabel = getGoalScopeLabel(goal, settings.weekStartsOn);
+                    const scheduleLabel =
+                      goal.scopeStart != null && goal.scopeStart > today.getTime()
+                        ? `${strings.goalForm.scopeStarts} ${format(
+                            new Date(goal.scopeStart),
+                            'd MMM yyyy',
+                          )}`
+                        : scopeLabel;
+                    return (
+                      <Pressable
+                        key={goal.id}
+                        onPress={() =>
+                          router.push({ pathname: '/goal/[id]', params: { id: goal.id } })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`${tracker.name}, ${strings.periods[goal.period]}${
+                          scheduleLabel ? `, ${scheduleLabel}` : ''
+                        }`}
+                        style={({ pressed }) => [styles.goalRow, pressed && styles.pressed]}
+                      >
+                        <View style={styles.goalInfo}>
+                          <AppText variant="body" color={theme.textMuted}>
+                            {strings.periods[goal.period]}
+                          </AppText>
+                          {scheduleLabel ? (
+                            <AppText variant="caption" color={theme.textMuted} numberOfLines={1}>
+                              {scheduleLabel}
+                            </AppText>
+                          ) : null}
+                        </View>
+                        <AppText variant="bodyStrong">
+                          {tracker.kind === 'check'
+                            ? strings.check.checklist
+                            : `${formatAmount(goal.target)} ${tracker.unit}`}
+                        </AppText>
+                        <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+                      </Pressable>
+                    );
+                  })}
                 </View>
               </View>
             );
@@ -221,7 +256,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.sm,
   },
-  period: {
+  goalInfo: {
     flex: 1,
+    gap: 2,
   },
 });

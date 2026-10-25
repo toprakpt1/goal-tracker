@@ -6,6 +6,7 @@
     "@expo-google-fonts/domine": "^0.4.2",
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo/vector-icons": "^15.0.2",
+    "@react-native-community/datetimepicker": "9.2.1",
     "date-fns": "^4.4.0",
     "expo": "~58.0.19",
     "expo-constants": "~58.0.13",

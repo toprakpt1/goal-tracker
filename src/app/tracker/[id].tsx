@@ -13,6 +13,7 @@ import { Screen } from '@/components/screen';
 import { TextField } from '@/components/text-field';
 import { listGoalsForTracker } from '@/db/repositories/goals';
 import { archiveTracker, getTracker, updateTracker } from '@/db/repositories/trackers';
+import { isRecurringGoal } from '@/domain/scope';
 import type { Goal, Tracker } from '@/domain/types';
 import { useDbQuery } from '@/hooks/use-db-query';
 import { useSettings } from '@/hooks/use-settings';
@@ -79,7 +80,10 @@ function TrackerEditForm({ tracker, goals }: TrackerData) {
   const [saving, setSaving] = useState(false);
 
   const isCheck = tracker.kind === 'check';
-  const allPeriodsCovered = goals.length >= 4;
+  // Scoped goals do not cover a period forever, so only recurring goals count.
+  const allPeriodsCovered = new Set(
+    goals.filter(isRecurringGoal).map((goal) => goal.period),
+  ).size >= 4;
 
   async function handleSave() {
     const step = isCheck ? 1 : parseAmount(defaultStep);

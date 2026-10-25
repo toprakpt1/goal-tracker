@@ -1,4 +1,5 @@
 import { getPeriodRange } from './period';
+import { getGoalActiveRange } from './scope';
 import type { Goal, LogEntry, PeriodRange, WeekStartsOn } from './types';
 
 export interface Progress {
@@ -59,10 +60,28 @@ export function getProgress(
 
 /** Convenience wrapper for the common "this goal right now" call. */
 export function getGoalProgress(
-  goal: Pick<Goal, 'target' | 'period'>,
+  goal: Pick<Goal, 'target' | 'period'> & {
+    scopeStart?: number | null;
+    scopeEnd?: number | null;
+  },
   logs: readonly AmountLog[],
   date: Date,
   weekStartsOn: WeekStartsOn = 1,
 ): Progress {
-  return getProgress(goal.target, logs, getPeriodRange(goal.period, date, weekStartsOn));
+  const range = getGoalActiveRange(
+    {
+      period: goal.period,
+      scopeStart: goal.scopeStart ?? null,
+      scopeEnd: goal.scopeEnd ?? null,
+    },
+    date,
+    weekStartsOn,
+  );
+
+  if (!range) {
+    // Inactive goals should not count logs from a period they do not cover.
+    return getProgress(goal.target, [], getPeriodRange(goal.period, date, weekStartsOn));
+  }
+
+  return getProgress(goal.target, logs, range);
 }

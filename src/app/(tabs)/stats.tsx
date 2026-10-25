@@ -10,6 +10,7 @@ import { Screen } from '@/components/screen';
 import { StatTile } from '@/components/stat-tile';
 import { TrackerIcon } from '@/components/tracker-icon';
 import { loadStats, type GoalStreak } from '@/db/stats';
+import { getGoalScopeLabel } from '@/domain/scope';
 import type { Tracker } from '@/domain/types';
 import { useDbQuery } from '@/hooks/use-db-query';
 import { useSettings } from '@/hooks/use-settings';
@@ -129,6 +130,7 @@ export default function StatsScreen() {
                   <View style={styles.rows}>
                     {rows.map((row) => {
                       const unit = strings.streak.units[row.goal.period];
+                      const scopeLabel = getGoalScopeLabel(row.goal, settings.weekStartsOn);
                       return (
                         <Pressable
                           key={row.goal.id}
@@ -136,13 +138,24 @@ export default function StatsScreen() {
                             router.push({ pathname: '/goal/[id]', params: { id: row.goal.id } })
                           }
                           accessibilityRole="button"
-                          accessibilityLabel={`${tracker.name}, ${strings.periods[row.goal.period]}`}
+                          accessibilityLabel={`${tracker.name}, ${strings.periods[row.goal.period]}${
+                            scopeLabel ? `, ${scopeLabel}` : ''
+                          }`}
                           style={({ pressed }) => [styles.row, pressed && styles.pressed]}
                         >
                           <View style={styles.rowText}>
                             <AppText variant="bodyStrong">
                               {strings.periods[row.goal.period]}
                             </AppText>
+                            {scopeLabel ? (
+                              <AppText
+                                variant="caption"
+                                color={theme.textMuted}
+                                numberOfLines={1}
+                              >
+                                {scopeLabel}
+                              </AppText>
+                            ) : null}
                             <AppText variant="caption" color={theme.textMuted}>
                               {strings.stats.completedPeriods(row.total)}
                             </AppText>
