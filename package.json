@@ -56,6 +56,7 @@
     "test:watch": "TZ=Europe/Istanbul jest --watch",
     "typecheck": "tsc --noEmit"
   },
+  "license": "GPL-3.0-only",
   "private": true,
   "jest": {
     "preset": "jest-expo",

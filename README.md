@@ -1,56 +1,171 @@
-# Welcome to your Expo app 👋
+# Goal Tracker
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Minimal, offline-first goal and habit tracker for Android and iOS. Create recurring goals, log progress in a few taps, and use streaks and statistics to stay consistent.
 
-## Get started
+[Report a bug](https://github.com/toprakpt1/scopus/issues/new) · [Request a feature](https://github.com/toprakpt1/scopus/issues/new)
 
-1. Install dependencies
+## Table of Contents
+
+- [About the Project](#about-the-project)
+  - [Built With](#built-with)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Features](#features)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Testing](#testing)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Privacy](#privacy)
+- [License](#license)
+- [Contact](#contact)
+
+## About the Project
+
+Goal Tracker is a calm, focused mobile app for turning intentions into repeatable routines. Organize goals by tracker, choose a daily, weekly, monthly, or yearly target, and record completions or numeric progress without leaving the app.
+
+The app is designed to work offline. Goals, logs, settings, and statistics are stored locally on the device using SQLite, while notifications are optional and handled through the platform notification system.
+
+### Built With
+
+- [Expo](https://expo.dev) SDK 58
+- [React Native](https://reactnative.dev) 0.88
+- [Expo Router](https://docs.expo.dev/router/introduction/) for file-based navigation
+- [TypeScript](https://www.typescriptlang.org/)
+- [Expo SQLite](https://docs.expo.dev/versions/v58.0.0/sdk/sqlite/) for local persistence
+- [Zustand](https://zustand.docs.pmnd.rs/) for lightweight state management
+- [Lucide React Native](https://lucide.dev/) and Expo vector icons
+
+## Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (LTS recommended)
+- npm
+- An Android emulator, iOS simulator, physical device, or [Expo Go](https://expo.dev/go)
+
+### Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/toprakpt1/scopus.git
+   cd scopus
+   ```
+
+2. Install dependencies:
 
    ```bash
    npm install
    ```
 
-2. Start the app
+3. Start the development server:
 
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+4. Open the app in Expo Go, an Android emulator, an iOS simulator, or a development build.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+For local native builds, use the Expo workflow for your platform. Native `ios/` and `android/` directories are generated as needed and are not maintained manually in this repository.
 
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Features
 
-## Get a fresh project
+- Goal dashboard with daily momentum and completion progress
+- Custom trackers with names, units, icons, colors, and default increments
+- Check-based goals and numeric goals
+- Daily, weekly, monthly, and yearly targets
+- Scoped goals with start and end dates
+- Quick logging with undo support
+- Streak tracking with current and best streaks
+- Statistics for tracked goals and completed periods
+- Optional reminders and notification scheduling
+- Configurable week start and appearance preferences
+- Fully offline local data storage with SQLite
+- Turkish and English interface strings
 
-When you're ready, run:
+## Usage
 
-```bash
-npm run reset-project
+1. Open the **Goals** tab and create a tracker or choose an existing one.
+2. Add a check-based or numeric goal and select its target period.
+3. Use the **Today** tab to mark a check goal complete or quickly add numeric progress.
+4. Open a goal to review its progress and logging history.
+5. Visit **Stats** to see completion totals, current streaks, and best streaks.
+6. Configure week start, reminders, and other preferences in **Settings**.
+
+## Project Structure
+
+```text
+src/
+├── app/          # Expo Router screens and layouts
+├── components/   # Reusable mobile UI components
+├── db/           # SQLite schema, migrations, queries, and repositories
+├── domain/       # Goal periods, progress, and streak calculations
+├── hooks/        # Data and settings hooks
+├── lib/          # Notifications, formatting, and app utilities
+├── store/        # Local application state
+└── theme/        # Colors, typography, spacing, and theme helpers
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+## Testing
 
-### Other setup steps
+Run the test suite:
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```bash
+npm test
+```
 
-## Learn more
+Run the quality checks used during development:
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+npm run lint
+npm run typecheck
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+The test suite includes domain logic for progress, streaks, periods, scoped goals, and daylight-saving-time boundaries.
 
-## Join the community
+## Roadmap
 
-Join our community of developers creating universal apps.
+- [x] Goal and tracker management
+- [x] Daily, weekly, monthly, and yearly goals
+- [x] Quick progress logging and undo
+- [x] Streak and statistics views
+- [x] Local notifications and reminders
+- [x] Offline-first SQLite storage
+- [ ] Data export and import
+- [ ] Home-screen widgets
+- [ ] More customization options
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Suggestions and known issues are welcome in [GitHub Issues](https://github.com/toprakpt1/scopus/issues).
+
+## Contributing
+
+Contributions are welcome. To propose a change:
+
+1. Fork the project.
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4. Push the branch (`git push origin feature/AmazingFeature`).
+5. Open a pull request.
+
+Please run `npm run lint` and `npm run typecheck` before submitting a pull request.
+
+## Privacy
+
+Goal Tracker is designed to keep your data on your device:
+
+- Goal data, logs, settings, and statistics are stored locally.
+- Core functionality does not require an internet connection.
+- Notifications are optional and can be disabled in Settings.
+- The project does not include analytics, advertising, or tracking services.
+
+## License
+
+This project is distributed under the [GNU General Public License v3.0](LICENSE).
+
+## Contact
+
+Toprak Talha Karcılar — [@toprakpt1](https://github.com/toprakpt1)
+
+Project link: [https://github.com/toprakpt1/scopus](https://github.com/toprakpt1/scopus)
