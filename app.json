@@ -2,6 +2,7 @@
   "expo": {
     "name": "Goal Tracker",
     "slug": "goal-tracker",
+    "description": "Free, open-source, offline-first habit and goal tracker for Android and iOS.",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

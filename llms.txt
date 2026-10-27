@@ -1,0 +1,62 @@
+# Goal Tracker
+
+> Free, open-source, offline-first habit and goal tracker for Android and iOS.
+> Built with Expo SDK 58, React Native 0.88, TypeScript, and SQLite.
+> No account, no cloud, no ads, no analytics.
+
+Goal Tracker is a local-first mobile app for building consistent routines. You
+create a tracker for something you want to improve, add check-based or numeric
+goals with daily, weekly, monthly, or yearly targets, and log progress from the
+Today screen. Streaks and statistics show how consistently you follow through.
+All data stays in a local SQLite database on the device.
+
+## Key facts
+
+- License: GNU General Public License v3.0 (GPL-3.0)
+- Price: free; no ads, subscriptions, or in-app purchases
+- Platforms: Android (APK releases), iOS (build from source)
+- Accounts: none
+- Network: not required for core features
+- Data storage: on-device SQLite (`goaltracker.db`)
+- Languages: English UI
+- Latest release: https://github.com/toprakpt1/goal-tracker/releases/latest
+
+## Features
+
+- Trackers with name, unit, icon, color, and quick-add step
+- Checklist goals and numeric goals
+- Daily, weekly, monthly, and yearly targets
+- Multiple goals per tracker sharing one log stream
+- Scheduled goals limited to a specific day, week, month, or year
+- Current and best streaks, completed periods, tracked goals
+- Optional daily reminders via local notifications
+- Notes on goals and log entries
+- Light, dark, and system themes; configurable week start; haptics
+- Offline-first SQLite storage with versioned migrations
+
+## Repository layout
+
+- `src/app` — Expo Router screens and layouts
+- `src/components` — reusable mobile UI components
+- `src/db` — SQLite schema, migrations, queries, repositories
+- `src/domain` — periods, progress, scopes, streak calculations
+- `src/hooks` — data and settings hooks
+- `src/i18n` — user-facing strings
+- `src/lib` — notifications, formatting, icons, utilities
+- `src/store` — local application state
+- `src/theme` — colors, typography, spacing, theme helpers
+
+## Development
+
+- Install: `npm install`
+- Start: `npx expo start`
+- Test: `npm test`
+- Lint: `npm run lint`
+- Typecheck: `npm run typecheck`
+
+## Links
+
+- Source: https://github.com/toprakpt1/goal-tracker
+- Releases: https://github.com/toprakpt1/goal-tracker/releases
+- Issues: https://github.com/toprakpt1/goal-tracker/issues
+- License: https://github.com/toprakpt1/goal-tracker/blob/master/LICENSE

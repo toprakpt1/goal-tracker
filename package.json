@@ -1,7 +1,33 @@
 {
   "name": "goal-tracker",
   "version": "1.0.0",
+  "description": "Free, open-source, offline-first habit and goal tracker for Android and iOS.",
   "main": "expo-router/entry",
+  "keywords": [
+    "habit-tracker",
+    "goal-tracker",
+    "offline-first",
+    "productivity",
+    "streaks",
+    "react-native",
+    "expo",
+    "expo-router",
+    "expo-sqlite",
+    "sqlite",
+    "typescript",
+    "zustand",
+    "android",
+    "ios"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toprakpt1/goal-tracker.git"
+  },
+  "homepage": "https://github.com/toprakpt1/goal-tracker#readme",
+  "bugs": {
+    "url": "https://github.com/toprakpt1/goal-tracker/issues"
+  },
+  "author": "Toprak Talha Karcılar",
   "dependencies": {
     "@expo-google-fonts/domine": "^0.4.2",
     "@expo-google-fonts/inter": "^0.4.2",
